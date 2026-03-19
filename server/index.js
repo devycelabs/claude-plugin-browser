@@ -20,6 +20,8 @@ const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
 const MARKETPLACE  = 'claude-plugins-official';
 const MKT_DIR      = path.join(PLUGINS_BASE, 'marketplaces', MARKETPLACE);
 const BROWSER_HTML = path.join(__dirname, '..', 'browser', 'index.html');
+const LICENSE_FILE = path.join(__dirname, '..', 'LICENSE');
+const PRIVACY_FILE = path.join(__dirname, '..', 'PRIVACY.md');
 const PLUGIN_DATA  = process.env.CLAUDE_PLUGIN_DATA || path.join(PLUGINS_BASE, 'data', 'plugin-browser');
 const FONTS_DIR    = path.join(PLUGIN_DATA, 'fonts');
 
@@ -146,6 +148,18 @@ const httpServer = http.createServer((req, res) => {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('browser/index.html not found');
     }
+    return;
+  }
+
+  if (url.pathname === '/license') {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end(fs.existsSync(LICENSE_FILE) ? fs.readFileSync(LICENSE_FILE, 'utf8') : 'LICENSE not found');
+    return;
+  }
+
+  if (url.pathname === '/privacy') {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end(fs.existsSync(PRIVACY_FILE) ? fs.readFileSync(PRIVACY_FILE, 'utf8') : 'PRIVACY.md not found');
     return;
   }
 

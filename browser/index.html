@@ -603,6 +603,26 @@ html { transition: background 0.25s, color 0.25s; }
   flex-shrink: 0;
 }
 .theme-btn:hover { color: var(--text); border-color: var(--muted); }
+
+/* ── Page footer ─────────────────────────────────────────── */
+.page-footer {
+  text-align: center;
+  padding: 28px 20px 36px;
+  font-family: var(--f-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  opacity: 0.55;
+}
+.page-footer a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+.page-footer a:hover { opacity: 1; }
+.page-footer .sep { margin: 0 8px; opacity: 0.4; }
 </style>
 </head>
 <body>
@@ -678,6 +698,16 @@ html { transition: background 0.25s, color 0.25s; }
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
+<footer class="page-footer">
+  <span>devyce labs</span>
+  <span class="sep">·</span>
+  <a href="/license" target="_blank" rel="noopener">MIT License</a>
+  <span class="sep">·</span>
+  <a href="/privacy" target="_blank" rel="noopener">Privacy</a>
+  <span class="sep">·</span>
+  <a href="https://github.com/devycelabs/claude-plugin-browser" target="_blank" rel="noopener">github</a>
+</footer>
 
 <script>
 // ── Data ────────────────────────────────────────────────────
