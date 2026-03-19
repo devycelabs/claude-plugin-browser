@@ -676,8 +676,8 @@ html { transition: background 0.25s, color 0.25s; }
   </div>
   <div class="header-meta">
     <span class="header-tag">official · local cache</span>
-    <div class="header-dot"></div>
-    <span class="header-tag">community · live</span>
+    <div class="header-dot" id="community-dot" style="display:none"></div>
+    <span class="header-tag" id="community-header-tag" style="display:none">community · live</span>
   </div>
 </header>
 
@@ -906,11 +906,11 @@ async function fetchCommunityPlugins() {
     if (!resp.ok) return;
     const data = await resp.json();
     communityPlugins = data.plugins ?? [];
-    const tab = document.getElementById('community-tab');
-    const cnt = document.getElementById('community-count');
     if (communityPlugins.length > 0) {
-      cnt.textContent = `(${communityPlugins.length})`;
-      tab.style.display = '';
+      document.getElementById('community-count').textContent = `(${communityPlugins.length})`;
+      document.getElementById('community-tab').style.display = '';
+      document.getElementById('community-dot').style.display = '';
+      document.getElementById('community-header-tag').style.display = '';
     }
     render();
   } catch { /* community fetch is best-effort */ }
