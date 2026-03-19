@@ -8,7 +8,8 @@ A local web UI for browsing the official Claude Code plugin marketplace.
 - Sort by popularity (install counts) or name
 - Relative popularity bars with real install numbers
 - One-click copy of `/plugin install` commands
-- Live sync from `~/.claude/plugins/` — no internet required
+- Official plugins synced from local `~/.claude/plugins/` cache
+- Community plugins fetched live from [claude-plugins-community](https://github.com/devycelabs/claude-plugins-community)
 - Fonts downloaded once on install and served locally
 
 ## Install via Claude Code
