@@ -1124,7 +1124,7 @@ function render() {
       updateInfo: null,
     }));
   } else {
-    if (communityPlugins?.length && activeFilter === 'all') {
+    if (communityPlugins?.length && (activeFilter === 'all' || activeFilter === 'installed')) {
       const officialNames = new Set(list.map(p => p.name));
       const extras = communityPlugins
         .filter(p => !officialNames.has(p.name))
@@ -1147,9 +1147,10 @@ function render() {
   else                    list.sort((a,b) => a.name.localeCompare(b.name));
 
   // Stats — total pool varies by active tab
+  const communityExtras = communityPlugins?.filter(p => !new Set(activePlugins().map(q => q.name)).has(p.name)).length ?? 0;
   const totalPool = activeFilter === 'community'   ? (communityPlugins?.length ?? 0)
                   : activeFilter === 'unmonitored' ? unmonitored.length
-                  : activePlugins().length + (activeFilter === 'all' ? (communityPlugins?.filter(p => !new Set(activePlugins().map(q => q.name)).has(p.name)).length ?? 0) : 0);
+                  : activePlugins().length + (activeFilter === 'all' || activeFilter === 'installed' ? communityExtras : 0);
   document.getElementById("stats").innerHTML =
     `<em>${list.length}</em> of <em>${totalPool}</em> plugins`;
   document.getElementById("header-count").textContent = list.length;
