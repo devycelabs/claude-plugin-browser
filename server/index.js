@@ -103,8 +103,13 @@ function loadData() {
                                installedAt: rec.installedAt, marketplace: mkt };
   }
 
+  const marketplaces = Object.keys(known ?? {}).map(name => ({
+    name, isOfficial: name === MARKETPLACE,
+  }));
+
   return { marketplace: MARKETPLACE, lastUpdated, fetchedAt: new Date().toISOString(),
-           pluginCount: plugins.length, plugins, installCounts, installed, installedDetails };
+           pluginCount: plugins.length, plugins, installCounts, installed, installedDetails,
+           marketplaces };
 }
 
 // ── Community registry ────────────────────────────────────────

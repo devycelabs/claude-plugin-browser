@@ -660,6 +660,50 @@ html { transition: background 0.25s, color 0.25s; }
 }
 .page-footer a:hover { opacity: 1; }
 .page-footer .sep { margin: 0 8px; opacity: 0.4; }
+
+/* ── Community promo banner ───────────────────────────────── */
+.promo-card {
+  background: var(--surface);
+  border-top: 2px solid #a78bfa;
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.promo-card-title {
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a78bfa;
+  margin-bottom: 4px;
+}
+.promo-card-desc {
+  font-family: var(--f-body);
+  font-size: 0.8rem;
+  color: var(--muted);
+  flex: 1;
+  min-width: 200px;
+  line-height: 1.5;
+}
+.promo-cmd {
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  color: var(--muted2);
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.promo-cmd:hover { border-color: #a78bfa; color: #a78bfa; }
+.promo-cmd .prompt { color: #a78bfa; margin-right: 4px; }
 </style>
 </head>
 <body>
@@ -731,6 +775,7 @@ html { transition: background 0.25s, color 0.25s; }
 </div>
 
 <!-- Grid -->
+<div id="promo-banner"></div>
 <div class="grid" id="grid"></div>
 
 <!-- Toast -->
@@ -828,9 +873,34 @@ let livePlugins         = null;
 let liveInstallCounts   = null;
 let liveInstalled       = null;
 let liveInstalledDetails= null;
+let liveMarketplaces    = null;
 let liveUpdates         = null;
 let communityPlugins    = null; // fetched from /api/community
 let lastSynced          = null;
+
+const COMMUNITY_MKT_REPO = 'devycelabs/claude-plugins-community';
+const COMMUNITY_MKT_NAME = 'devycelabs-claude-plugins-community';
+
+function communityIsAdded() {
+  return liveMarketplaces?.some(m => m.name === COMMUNITY_MKT_NAME) ?? false;
+}
+
+function updatePromo() {
+  const banner = document.getElementById('promo-banner');
+  if (!communityPlugins?.length || communityIsAdded()) { banner.innerHTML = ''; return; }
+  const addCmd = `/plugin marketplace add ${COMMUNITY_MKT_REPO}`;
+  banner.innerHTML = `
+  <div class="promo-card">
+    <div class="promo-card-desc">
+      <div class="promo-card-title">Community plugins available</div>
+      Community plugins are browseable here but require the community marketplace to install.
+      Add it once, then use the copy buttons below to install any plugin.
+    </div>
+    <div class="promo-cmd" onclick="copyCmd('${esc(addCmd)}')" title="Click to copy">
+      <span class="prompt">$</span>${esc(addCmd)}
+    </div>
+  </div>`;
+}
 
 function activePlugins()      { return livePlugins       ?? PLUGINS; }
 function activeInstallCounts(){ return liveInstallCounts ?? INSTALL_COUNTS; }
@@ -860,6 +930,7 @@ async function syncFromServer() {
     liveInstallCounts    = data.installCounts    ?? null;
     liveInstalled        = data.installed        ?? null;
     liveInstalledDetails = data.installedDetails ?? null;
+    liveMarketplaces     = data.marketplaces     ?? null;
     lastSynced           = data.fetchedAt        ?? null;
 
     const t = lastSynced ? new Date(lastSynced).toLocaleTimeString() : "now";
@@ -912,6 +983,7 @@ async function fetchCommunityPlugins() {
       document.getElementById('community-dot').style.display = '';
       document.getElementById('community-header-tag').style.display = '';
     }
+    updatePromo();
     render();
   } catch { /* community fetch is best-effort */ }
 }
