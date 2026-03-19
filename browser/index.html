@@ -237,8 +237,10 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
 .filter-btn.active.f-installed { background: var(--c-installed);  border-color: var(--c-installed);  color: #000; }
 .filter-btn.active.f-updates    { background: #E8930A;             border-color: #E8930A;             color: #1C0A0A; }
 .filter-btn.f-updates           { color: #E8930A; border-color: rgba(232,147,10,0.35); }
-.filter-btn.active.f-community  { background: #a78bfa;             border-color: #a78bfa;             color: #1a0050; }
-.filter-btn.f-community         { color: #a78bfa; border-color: rgba(167,139,250,0.35); }
+.filter-btn.active.f-community    { background: #a78bfa;             border-color: #a78bfa;             color: #1a0050; }
+.filter-btn.f-community           { color: #a78bfa; border-color: rgba(167,139,250,0.35); }
+.filter-btn.active.f-unmonitored  { background: var(--c-gold);        border-color: var(--c-gold);       color: #1a1400; }
+.filter-btn.f-unmonitored         { color: var(--c-gold); border-color: rgba(224,192,74,0.35); }
 
 /* ── Community / archived ───────────────────────────────────── */
 .card.archived { opacity: 0.55; }
@@ -257,7 +259,12 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
   border: 1px solid rgba(167,139,250,0.25); border-radius: 3px;
   padding: 1px 5px; letter-spacing: 0.02em;
 }
-.stripe-community { background: #a78bfa; }
+.stripe-community   { background: #a78bfa; }
+.stripe-unmonitored { background: var(--c-gold); }
+.type-unmonitored   { font-family: var(--f-mono); font-size: 0.6rem; letter-spacing: 0.06em;
+                      text-transform: uppercase; color: var(--c-gold);
+                      background: rgba(224,192,74,0.1); border: 1px solid rgba(224,192,74,0.25);
+                      border-radius: 3px; padding: 1px 5px; display: inline-block; margin-bottom: 6px; }
 
 /* Sort */
 .sort-wrap {
@@ -764,6 +771,7 @@ html { transition: background 0.25s, color 0.25s; }
     <button class="filter-btn f-installed"         onclick="setFilter('installed',this)">Installed</button>
     <button class="filter-btn f-updates" id="updates-tab" onclick="setFilter('updates',this)" style="display:none">Updates <span id="updates-count"></span></button>
     <button class="filter-btn f-community" id="community-tab" onclick="setFilter('community',this)" style="display:none">Community <span id="community-count"></span></button>
+    <button class="filter-btn f-unmonitored" id="unmonitored-tab" onclick="setFilter('unmonitored',this)" style="display:none">Unmonitored <span id="unmonitored-count"></span></button>
   </div>
   <div class="sort-wrap">
     <span>Sort</span>
@@ -906,8 +914,49 @@ let lastSynced          = null;
 const COMMUNITY_MKT_REPO = 'devycelabs/claude-plugins-community';
 const COMMUNITY_MKT_NAME = 'devycelabs-claude-plugins-community';
 
+// Tracked marketplaces — plugins from these are shown in their own tabs
+const TRACKED_MKTS = new Set(['claude-plugins-official', COMMUNITY_MKT_NAME]);
+
+function getUnmonitoredPlugins() {
+  if (!liveInstalledDetails) return [];
+  const trackedNames = new Set([
+    ...activePlugins().map(p => p.name),
+    ...(communityPlugins ?? []).map(p => p.name),
+  ]);
+  return Object.entries(liveInstalledDetails)
+    .filter(([name, d]) => !trackedNames.has(name) && !TRACKED_MKTS.has(d.marketplace))
+    .map(([name, d]) => ({
+      name,
+      displayName: name,
+      desc:        '',
+      author:      d.marketplace || 'unknown source',
+      type:        'unmonitored',
+      url:         null,
+      installs:    0,
+      installed:   true,
+      hasUpdate:   false,
+      updateInfo:  null,
+      archived:    false,
+      installedAt: d.installedAt,
+      version:     d.version,
+      marketplace: d.marketplace,
+    }));
+}
+
 function communityIsAdded() {
   return liveMarketplaces?.some(m => m.name === COMMUNITY_MKT_NAME) ?? false;
+}
+
+function updateUnmonitoredTab() {
+  const plugins = getUnmonitoredPlugins();
+  const tab = document.getElementById('unmonitored-tab');
+  const cnt = document.getElementById('unmonitored-count');
+  if (plugins.length > 0) {
+    cnt.textContent = `(${plugins.length})`;
+    tab.style.display = '';
+  } else {
+    tab.style.display = 'none';
+  }
 }
 
 function updatePromo() {
@@ -961,6 +1010,7 @@ async function syncFromServer() {
     const t = lastSynced ? new Date(lastSynced).toLocaleTimeString() : "now";
     setStatus("live", `live · ${t}`);
     updatePromo();
+    updateUnmonitoredTab();
     render();
     // Kick off background checks — non-blocking
     fetchUpdateStatus();
@@ -1010,6 +1060,7 @@ async function fetchCommunityPlugins() {
       document.getElementById('community-header-tag').style.display = '';
     }
     updatePromo();
+    updateUnmonitoredTab();
     render();
   } catch { /* community fetch is best-effort */ }
 }
@@ -1059,8 +1110,12 @@ function render() {
     url: p.url || `https://github.com/anthropics/claude-plugins-official/tree/main/${p.type === 'external' ? 'external_plugins' : 'plugins'}/${p.name}`,
   }));
 
-  // Merge community plugins into list when viewing All or Community
-  if (activeFilter === 'community') {
+  // Build lists for special tabs
+  const unmonitored = getUnmonitoredPlugins();
+
+  if (activeFilter === 'unmonitored') {
+    list = unmonitored;
+  } else if (activeFilter === 'community') {
     list = (communityPlugins ?? []).map(p => ({
       ...p,
       installs:  0,
@@ -1091,10 +1146,10 @@ function render() {
   if (sort === "popular") list.sort((a,b) => b.installs - a.installs);
   else                    list.sort((a,b) => a.name.localeCompare(b.name));
 
-  // Stats — total pool includes community extras when in "all" view
-  const totalPool = activeFilter === 'community'
-    ? (communityPlugins?.length ?? 0)
-    : activePlugins().length + (activeFilter === 'all' ? (communityPlugins?.filter(p => !new Set(activePlugins().map(q => q.name)).has(p.name)).length ?? 0) : 0);
+  // Stats — total pool varies by active tab
+  const totalPool = activeFilter === 'community'   ? (communityPlugins?.length ?? 0)
+                  : activeFilter === 'unmonitored' ? unmonitored.length
+                  : activePlugins().length + (activeFilter === 'all' ? (communityPlugins?.filter(p => !new Set(activePlugins().map(q => q.name)).has(p.name)).length ?? 0) : 0);
   document.getElementById("stats").innerHTML =
     `<em>${list.length}</em> of <em>${totalPool}</em> plugins`;
   document.getElementById("header-count").textContent = list.length;
@@ -1120,8 +1175,11 @@ function render() {
     // safe URL: allow http/https only
     const safeUrl = p.url && /^https?:\/\//.test(p.url) ? p.url : '';
 
+    const isUnmonitored = p.type === 'unmonitored';
     const securityStrip = isCommunity
       ? `<div class="community-security-strip">Review source ${p.installed ? 'before updating' : 'before installing'}</div>`
+      : isUnmonitored
+      ? `<div class="community-security-strip">Not tracked by any monitored registry — review before updating</div>`
       : '';
 
     return `
@@ -1129,12 +1187,18 @@ function render() {
   <div class="card-stripe stripe-${esc(p.type)}"></div>
   ${safeUrl ? `<a class="card-repo" href="${esc(safeUrl)}" target="_blank" rel="noopener" title="View repository">repo ↗</a>` : ''}
   <div class="card-body">
-    <div class="card-type type-${esc(p.type)}">${isCommunity ? '<span class="community-badge">community</span>' : esc(typeLabel)}</div>
+    <div class="card-type type-${esc(p.type)}">${isCommunity ? '<span class="community-badge">community</span>' : isUnmonitored ? 'unmonitored' : esc(typeLabel)}</div>
     <div class="card-name">
       ${esc(p.name)}${p.installed ? ' <span class="installed-pip" title="Installed"></span>' : ''}${p.hasUpdate ? ' <span class="update-pip" title="Update available — reinstall to get latest">↑ update</span>' : ''}${p.archived ? ' <span class="archived-badge" title="No longer actively maintained">archived</span>' : ''}
     </div>
-    <div class="card-author">by&nbsp;${esc(p.author)}${p.updateInfo?.latestCommitDate ? ` <span style="opacity:0.45;font-size:0.75em">· latest ${esc(new Date(p.updateInfo.latestCommitDate).toLocaleDateString())}</span>` : ''}</div>
-    <div class="card-desc">${esc(p.desc)}</div>
+    <div class="card-author">${isUnmonitored
+      ? `source: ${esc(p.marketplace || 'unknown')}`
+      : `by&nbsp;${esc(p.author)}${p.updateInfo?.latestCommitDate ? ` <span style="opacity:0.45;font-size:0.75em">· latest ${esc(new Date(p.updateInfo.latestCommitDate).toLocaleDateString())}</span>` : ''}`
+    }</div>
+    <div class="card-desc">${isUnmonitored && p.installedAt
+      ? `<span style="opacity:0.5;font-size:0.75em;font-family:var(--f-mono)">installed ${esc(new Date(p.installedAt).toLocaleDateString())}${p.version ? ' · v' + esc(p.version) : ''}</span>`
+      : esc(p.desc)
+    }</div>
   </div>
   <div class="card-footer">
     <div class="pop-row">
