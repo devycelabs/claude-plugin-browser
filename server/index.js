@@ -20,6 +20,8 @@ const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
 const MARKETPLACE  = 'claude-plugins-official';
 const MKT_DIR      = path.join(PLUGINS_BASE, 'marketplaces', MARKETPLACE);
 const BROWSER_HTML = path.join(__dirname, '..', 'browser', 'index.html');
+const PLUGIN_DATA  = process.env.CLAUDE_PLUGIN_DATA || path.join(PLUGINS_BASE, 'data', 'plugin-browser');
+const FONTS_DIR    = path.join(PLUGIN_DATA, 'fonts');
 
 // ── Plugin data ──────────────────────────────────────────────
 
@@ -143,6 +145,21 @@ const httpServer = http.createServer((req, res) => {
     } else {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('browser/index.html not found');
+    }
+    return;
+  }
+
+  // Serve locally-cached font files (downloaded once by setup-check)
+  if (url.pathname.startsWith('/fonts/')) {
+    const filename = path.basename(url.pathname); // prevent path traversal
+    const ext      = path.extname(filename).slice(1);
+    const mime     = ext === 'css' ? 'text/css; charset=utf-8' : 'font/woff2';
+    const filePath = path.join(FONTS_DIR, filename);
+    if (fs.existsSync(filePath)) {
+      res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': 'max-age=604800' });
+      res.end(fs.readFileSync(filePath));
+    } else {
+      res.writeHead(404); res.end();
     }
     return;
   }

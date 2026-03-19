@@ -3,17 +3,18 @@
 A local web UI for browsing the official Claude Code plugin marketplace.
 
 ## Features
-- Browse all 43+ plugins from `claude-plugins-official`
+- Browse all plugins from `claude-plugins-official`
 - Filter by type: Anthropic · MCP · LSP · Installed
 - Sort by popularity (install counts) or name
 - Relative popularity bars with real install numbers
 - One-click copy of `/plugin install` commands
-- Live sync from `~/.claude/plugins/` — no network required
+- Live sync from `~/.claude/plugins/` — no internet required
+- Fonts downloaded once on install and served locally
 
 ## Install via Claude Code
 
 ```
-/plugin marketplace add your-username/plugin-browser
+/plugin marketplace add TODO_GITHUB_USERNAME/claude-plugin-browser
 /plugin install plugin-browser
 ```
 

@@ -11,6 +11,7 @@ const http = require('http');
 const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
+const { ensureFonts } = require('./fonts');
 
 const PLUGIN_ROOT  = process.env.CLAUDE_PLUGIN_ROOT  || path.join(__dirname, '..');
 const PLUGIN_DATA  = process.env.CLAUDE_PLUGIN_DATA  || path.join(os.homedir(), '.claude', 'plugins', 'data', 'plugin-browser');
@@ -62,5 +63,7 @@ function markComplete(note) {
   try {
     fs.mkdirSync(PLUGIN_DATA, { recursive: true });
     fs.writeFileSync(FLAG_FILE, JSON.stringify({ configuredAt: new Date().toISOString(), note }));
+    // Download fonts in the background — non-blocking, best-effort
+    ensureFonts(PLUGIN_DATA).catch(() => {});
   } catch { /* data dir may not be writable in all envs */ }
 }

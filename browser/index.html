@@ -4,9 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Plugin Registry — claude-plugins-official</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
+<!-- Fonts are cached locally by setup-check.js on SessionStart.
+     Loaded from the local server; falls back to system fonts if not yet downloaded. -->
+<script>(function(){
+  var base = location.protocol === 'file:' ? 'http://localhost:3747' : location.origin;
+  var l = document.createElement('link');
+  l.rel = 'stylesheet'; l.href = base + '/fonts/fonts.css';
+  document.head.appendChild(l);
+}());</script>
 <style>
 /* ── Reset & Tokens ───────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
