@@ -83,8 +83,99 @@ function loadData() {
   const known       = safeReadJson(path.join(PLUGINS_BASE, 'known_marketplaces.json'));
   const lastUpdated = known?.[MARKETPLACE]?.lastUpdated ?? null;
 
+  // Installed detail: version + gitCommitSha per plugin name
+  const installedDetails = {};
+  for (const [key, installs] of Object.entries(installedRaw?.plugins ?? {})) {
+    const atIdx = key.indexOf('@');
+    const name = atIdx === -1 ? key : key.slice(0, atIdx);
+    const mkt  = atIdx === -1 ? null  : key.slice(atIdx + 1);
+    const rec  = installs.reduce((a, b) =>
+      new Date(a.lastUpdated) > new Date(b.lastUpdated) ? a : b);
+    installedDetails[name] = { version: rec.version, gitCommitSha: rec.gitCommitSha,
+                               installedAt: rec.installedAt, marketplace: mkt };
+  }
+
   return { marketplace: MARKETPLACE, lastUpdated, fetchedAt: new Date().toISOString(),
-           pluginCount: plugins.length, plugins, installCounts, installed };
+           pluginCount: plugins.length, plugins, installCounts, installed, installedDetails };
+}
+
+// ── Update checker ────────────────────────────────────────────
+
+const https = require('https');
+
+let _updateCache = null;
+const UPDATE_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+function githubGet(apiPath) {
+  return new Promise(resolve => {
+    const req = https.get({
+      hostname: 'api.github.com',
+      path: '/' + apiPath,
+      headers: { 'User-Agent': 'plugin-browser/1.0.0',
+                 'Accept': 'application/vnd.github.v3+json' },
+    }, res => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        try { resolve(res.statusCode === 200
+          ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : null);
+        } catch { resolve(null); }
+      });
+    });
+    req.setTimeout(10_000, () => req.destroy());
+    req.on('error', () => resolve(null));
+  });
+}
+
+async function checkUpdates() {
+  if (_updateCache && (Date.now() - _updateCache.fetchedAt) < UPDATE_CACHE_TTL) {
+    return { ..._updateCache.data, cached: true };
+  }
+
+  const installedRaw = safeReadJson(path.join(PLUGINS_BASE, 'installed_plugins.json'));
+  const updates = [];
+
+  for (const [key, installs] of Object.entries(installedRaw?.plugins ?? {})) {
+    const atIdx = key.indexOf('@');
+    const name  = atIdx === -1 ? key : key.slice(0, atIdx);
+    const mkt   = atIdx === -1 ? null : key.slice(atIdx + 1);
+    const rec   = installs.reduce((a, b) =>
+      new Date(a.lastUpdated) > new Date(b.lastUpdated) ? a : b);
+
+    if (mkt !== 'claude-plugins-official') {
+      // TODO: external plugin update checks
+      updates.push({ name, updateAvailable: null, reason: 'external' });
+      continue;
+    }
+
+    // Find which subdirectory this plugin lives in
+    let latest = null;
+    for (const sub of ['plugins', 'external_plugins']) {
+      const data = await githubGet(
+        `repos/anthropics/claude-plugins-official/commits?path=${sub}/${name}&per_page=1`);
+      if (data?.length > 0) { latest = data[0]; break; }
+    }
+
+    if (!latest) {
+      updates.push({ name, updateAvailable: null, reason: 'not-found' });
+      continue;
+    }
+
+    const latestDate    = new Date(latest.commit.committer.date);
+    const installedDate = new Date(rec.installedAt);
+    updates.push({
+      name,
+      updateAvailable:    latestDate > installedDate,
+      latestCommitSha:    latest.sha.slice(0, 12),
+      latestCommitDate:   latest.commit.committer.date,
+      installedAt:        rec.installedAt,
+      installedVersion:   rec.version,
+    });
+  }
+
+  const data = { checkedAt: new Date().toISOString(), updates };
+  _updateCache = { data, fetchedAt: Date.now() };
+  return data;
 }
 
 // ── Marketplace refresh ───────────────────────────────────────
@@ -148,6 +239,19 @@ const httpServer = http.createServer((req, res) => {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('browser/index.html not found');
     }
+    return;
+  }
+
+  if (url.pathname === '/api/check-updates') {
+    checkUpdates()
+      .then(data => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(data));
+      })
+      .catch(err => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      });
     return;
   }
 

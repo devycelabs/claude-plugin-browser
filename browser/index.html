@@ -234,6 +234,8 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
 .filter-btn.active.f-external  { background: var(--c-external);   border-color: var(--c-external);   color: #fff; }
 .filter-btn.active.f-lsp       { background: var(--c-lsp);        border-color: var(--c-lsp);        color: #fff; }
 .filter-btn.active.f-installed { background: var(--c-installed);  border-color: var(--c-installed);  color: #000; }
+.filter-btn.active.f-updates   { background: #E8930A;             border-color: #E8930A;             color: #1C0A0A; }
+.filter-btn.f-updates          { color: #E8930A; border-color: rgba(232,147,10,0.35); }
 
 /* Sort */
 .sort-wrap {
@@ -391,6 +393,20 @@ select:focus { border-color: var(--muted); }
   position: relative;
   top: -1px;
   box-shadow: 0 0 6px var(--c-installed);
+}
+.update-pip {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-family: var(--f-mono);
+  font-weight: 600;
+  color: #1C0A0A;
+  background: #E8930A;
+  border-radius: 3px;
+  padding: 1px 5px;
+  position: relative;
+  top: -1px;
+  letter-spacing: 0.02em;
+  cursor: default;
 }
 
 /* Author */
@@ -658,6 +674,7 @@ html { transition: background 0.25s, color 0.25s; }
     <button class="filter-btn f-external"          onclick="setFilter('external',this)">MCP</button>
     <button class="filter-btn f-lsp"               onclick="setFilter('lsp',this)">LSP</button>
     <button class="filter-btn f-installed"         onclick="setFilter('installed',this)">Installed</button>
+    <button class="filter-btn f-updates" id="updates-tab" onclick="setFilter('updates',this)" style="display:none">Updates <span id="updates-count"></span></button>
   </div>
   <div class="sort-wrap">
     <span>Sort</span>
@@ -787,10 +804,12 @@ const API = location.protocol.startsWith('http')
   ? `${location.origin}/api/plugins`
   : 'http://localhost:3747/api/plugins';
 
-let livePlugins       = null;
-let liveInstallCounts = null;
-let liveInstalled     = null;
-let lastSynced        = null;
+let livePlugins         = null;
+let liveInstallCounts   = null;
+let liveInstalled       = null;
+let liveInstalledDetails= null; // { name: { version, gitCommitSha, installedAt } }
+let liveUpdates         = null; // { name: { updateAvailable, latestCommitDate, ... } }
+let lastSynced          = null;
 
 function activePlugins()      { return livePlugins       ?? PLUGINS; }
 function activeInstallCounts(){ return liveInstallCounts ?? INSTALL_COUNTS; }
@@ -816,20 +835,46 @@ async function syncFromServer() {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
 
-    livePlugins       = data.plugins       ?? null;
-    liveInstallCounts = data.installCounts ?? null;
-    liveInstalled     = data.installed     ?? null;
-    lastSynced        = data.fetchedAt     ?? null;
+    livePlugins          = data.plugins          ?? null;
+    liveInstallCounts    = data.installCounts    ?? null;
+    liveInstalled        = data.installed        ?? null;
+    liveInstalledDetails = data.installedDetails ?? null;
+    lastSynced           = data.fetchedAt        ?? null;
 
     const t = lastSynced ? new Date(lastSynced).toLocaleTimeString() : "now";
     setStatus("live", `live · ${t}`);
     render();
+    // Kick off update check in background — non-blocking
+    fetchUpdateStatus();
   } catch {
     setStatus("offline", "offline");
   } finally {
     btn.disabled = false;
     btn.classList.remove("syncing");
   }
+}
+
+// ── Update checker ────────────────────────────────────────────
+async function fetchUpdateStatus() {
+  const updateUrl = API.replace('/api/plugins', '/api/check-updates');
+  try {
+    const resp = await fetch(updateUrl, { signal: AbortSignal.timeout(30_000) });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    // Build lookup: { pluginName: updateInfo }
+    liveUpdates = {};
+    for (const u of (data.updates ?? [])) {
+      liveUpdates[u.name] = u;
+    }
+    const updatable = Object.values(liveUpdates).filter(u => u.updateAvailable).length;
+    const tab = document.getElementById('updates-tab');
+    const cnt = document.getElementById('updates-count');
+    if (updatable > 0) {
+      cnt.textContent = `(${updatable})`;
+      tab.style.display = '';
+    }
+    render();
+  } catch { /* update check is best-effort */ }
 }
 
 // ── State ────────────────────────────────────────────────────
@@ -867,11 +912,14 @@ function render() {
     ...p,
     installs:  counts[p.name] || 0,
     installed: instList.includes(p.name),
+    hasUpdate: liveUpdates?.[p.name]?.updateAvailable === true,
+    updateInfo: liveUpdates?.[p.name] ?? null,
     // fallback: construct GitHub URL for embedded data that has no url
     url: p.url || `https://github.com/anthropics/claude-plugins-official/tree/main/${p.type === 'external' ? 'external_plugins' : 'plugins'}/${p.name}`,
   }));
 
   if (activeFilter === "installed") list = list.filter(p => p.installed);
+  else if (activeFilter === "updates") list = list.filter(p => p.hasUpdate);
   else if (activeFilter !== "all")  list = list.filter(p => p.type === activeFilter);
 
   if (q) list = list.filter(p =>
@@ -909,9 +957,9 @@ function render() {
   <div class="card-body">
     <div class="card-type type-${p.type}">${p.type === 'external' ? 'MCP' : p.type.toUpperCase()}</div>
     <div class="card-name">
-      ${p.name}${p.installed ? ' <span class="installed-pip" title="Installed"></span>' : ''}
+      ${p.name}${p.installed ? ' <span class="installed-pip" title="Installed"></span>' : ''}${p.hasUpdate ? ' <span class="update-pip" title="Update available — reinstall to get latest">↑ update</span>' : ''}
     </div>
-    <div class="card-author">by&nbsp;${p.author}</div>
+    <div class="card-author">by&nbsp;${p.author}${p.updateInfo?.latestCommitDate ? ` <span style="opacity:0.45;font-size:0.75em">· latest ${new Date(p.updateInfo.latestCommitDate).toLocaleDateString()}</span>` : ''}</div>
     <div class="card-desc">${p.desc}</div>
   </div>
   <div class="card-footer">
