@@ -35,6 +35,7 @@
   --c-lsp:       #9a7ae0;
   --c-installed: #4ac67a;
   --c-gold:      #e0c04a;
+  --c-amber:     #E8930A;
 
   --f-display:  'Syne', sans-serif;
   --f-mono:     'JetBrains Mono', monospace;
@@ -370,14 +371,38 @@ select:focus { border-color: var(--muted); }
 /* Repo link */
 .card-repo {
   position: absolute;
-  top: 14px; right: 14px;
+  top: 10px; right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--f-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
   color: var(--muted2);
   text-decoration: none;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  padding: 3px 7px;
   line-height: 1;
-  transition: color 0.15s;
-  font-size: 0.85rem;
+  transition: color 0.15s, border-color 0.15s;
 }
-.card-repo:hover { color: var(--muted); }
+.card-repo:hover { color: var(--text); border-color: var(--muted2); }
+
+/* Community security strip */
+.community-security-strip {
+  background: rgba(232,147,10,0.07);
+  border-top: 1px solid rgba(232,147,10,0.18);
+  padding: 6px 14px;
+  font-family: var(--f-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.02em;
+  color: var(--c-amber, #E8930A);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.community-security-strip::before { content: '🔍'; font-size: 0.65rem; }
 
 /* Type label */
 .card-type {
@@ -892,9 +917,9 @@ function updatePromo() {
   banner.innerHTML = `
   <div class="promo-card">
     <div class="promo-card-desc">
-      <div class="promo-card-title">Community plugins available</div>
-      Community plugins are browseable here but require the community marketplace to install.
-      Add it once, then use the copy buttons below to install any plugin.
+      <div class="promo-card-title">Community Marketplace available</div>
+      Browse community plugins here, but add the Community Marketplace once to install them directly.
+      All plugins remain in their own repos — review before installing.
     </div>
     <div class="promo-cmd" onclick="copyCmd('${esc(addCmd)}')" title="Click to copy">
       <span class="prompt">$</span>${esc(addCmd)}
@@ -1095,10 +1120,14 @@ function render() {
     // safe URL: allow http/https only
     const safeUrl = p.url && /^https?:\/\//.test(p.url) ? p.url : '';
 
+    const securityStrip = isCommunity
+      ? `<div class="community-security-strip">Review source ${p.installed ? 'before updating' : 'before installing'}</div>`
+      : '';
+
     return `
 <div class="card${p.archived ? ' archived' : ''}" style="animation-delay:${delay}ms">
   <div class="card-stripe stripe-${esc(p.type)}"></div>
-  ${safeUrl ? `<a class="card-repo" href="${esc(safeUrl)}" target="_blank" rel="noopener" title="View repository">↗</a>` : ''}
+  ${safeUrl ? `<a class="card-repo" href="${esc(safeUrl)}" target="_blank" rel="noopener" title="View repository">repo ↗</a>` : ''}
   <div class="card-body">
     <div class="card-type type-${esc(p.type)}">${isCommunity ? '<span class="community-badge">community</span>' : esc(typeLabel)}</div>
     <div class="card-name">
@@ -1116,6 +1145,7 @@ function render() {
       <span class="prompt">${p.installed ? '✓' : '$'}</span>${esc(cmd)}
     </div>
   </div>
+  ${securityStrip}
 </div>`;
   }).join("");
 }
