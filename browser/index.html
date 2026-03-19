@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plugin Registry — claude-plugins-official</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Tokens ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* ── Dark (default) ── */
+  --bg:          #0a0a0b;
+  --surface:     #101013;
+  --surface2:    #161619;
+  --border:      #1e1e24;
+  --border2:     #28282f;
+  --text:        #f2ede3;
+  --muted:       #72707e;
+  --muted2:      #4a4855;
+  --toolbar-bg:  rgba(10,10,11,0.92);
+  --noise-op:    0.022;
+  --header-glow: rgba(224,122,82,0.07);
+
+  --c-anthropic: #e07a52;
+  --c-external:  #4a9fe0;
+  --c-lsp:       #9a7ae0;
+  --c-installed: #4ac67a;
+  --c-gold:      #e0c04a;
+
+  --f-display:  'Syne', sans-serif;
+  --f-mono:     'JetBrains Mono', monospace;
+  --f-body:     'Outfit', sans-serif;
+}
+
+/* ── Light theme ──────────────────────────────────────────── */
+html[data-theme="light"] {
+  --bg:          #f5f1ea;
+  --surface:     #faf8f3;
+  --surface2:    #edeae2;
+  --border:      #d8d4ca;
+  --border2:     #c4c0b6;
+  --text:        #1c1a17;
+  --muted:       #7a7468;
+  --muted2:      #a8a298;
+  --toolbar-bg:  rgba(245,241,234,0.94);
+  --noise-op:    0.03;
+  --header-glow: rgba(224,122,82,0.09);
+
+  --c-anthropic: #c05c30;
+  --c-external:  #2878b8;
+  --c-lsp:       #6e52c8;
+  --c-installed: #2a8a52;
+}
+
+html { font-size: 16px; }
+body {
+  font-family: var(--f-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Noise texture overlay ────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: var(--noise-op);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+header {
+  position: relative;
+  padding: 44px 44px 32px;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  z-index: 1;
+}
+
+header::after {
+  content: '';
+  position: absolute;
+  top: -60px; right: -80px;
+  width: 380px; height: 380px;
+  background: radial-gradient(circle, var(--header-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.header-title {
+  font-family: var(--f-display);
+  font-weight: 800;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  text-transform: uppercase;
+}
+
+.header-title .dim { color: var(--muted2); }
+
+.header-count {
+  font-family: var(--f-display);
+  font-weight: 800;
+  font-size: clamp(3rem, 6vw, 5rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--border2);
+  user-select: none;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+
+.header-meta {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header-tag {
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+  padding: 3px 8px;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.header-dot {
+  width: 3px; height: 3px;
+  background: var(--muted2);
+  border-radius: 50%;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────── */
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 44px;
+  background: var(--toolbar-bg);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+/* Search */
+.search-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  width: 240px;
+}
+.search-prompt {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  color: var(--c-anthropic);
+  pointer-events: none;
+  user-select: none;
+}
+input[type="search"] {
+  width: 100%;
+  padding: 7px 10px 7px 26px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--f-mono);
+  font-size: 0.78rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  letter-spacing: 0.01em;
+}
+input[type="search"]:focus {
+  border-color: var(--c-anthropic);
+  box-shadow: 0 0 0 2px rgba(224,122,82,0.1);
+}
+input[type="search"]::placeholder { color: var(--muted2); }
+input[type="search"]::-webkit-search-cancel-button { display: none; }
+
+/* Filter pills */
+.filters {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.filter-btn {
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.filter-btn:hover { color: var(--text); border-color: var(--muted); }
+.filter-btn.active.f-all       { background: var(--text);         border-color: var(--text);         color: var(--bg); }
+.filter-btn.active.f-anthropic { background: var(--c-anthropic);  border-color: var(--c-anthropic);  color: #fff; }
+.filter-btn.active.f-external  { background: var(--c-external);   border-color: var(--c-external);   color: #fff; }
+.filter-btn.active.f-lsp       { background: var(--c-lsp);        border-color: var(--c-lsp);        color: #fff; }
+.filter-btn.active.f-installed { background: var(--c-installed);  border-color: var(--c-installed);  color: #000; }
+
+/* Sort */
+.sort-wrap {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+select {
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  padding: 5px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+  letter-spacing: 0.02em;
+}
+select:focus { border-color: var(--muted); }
+
+/* ── Stats row ───────────────────────────────────────────── */
+.stats-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 44px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.stats-row em { color: var(--text); font-style: normal; font-weight: 600; }
+.stats-legend {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.legend-dot {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.dot {
+  width: 6px; height: 6px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+.dot-anthropic { background: var(--c-anthropic); }
+.dot-external  { background: var(--c-external); }
+.dot-lsp       { background: var(--c-lsp); }
+
+/* ── Grid ────────────────────────────────────────────────── */
+.grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  background: var(--border);
+  gap: 1px;
+}
+
+/* ── Card ────────────────────────────────────────────────── */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+  position: relative;
+  background: var(--surface);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  animation: cardIn 0.28s ease forwards;
+  transition: background 0.18s;
+  overflow: hidden;
+}
+.card:hover { background: var(--surface2); }
+
+/* Top stripe */
+.card-stripe {
+  height: 2px;
+  width: 100%;
+  flex-shrink: 0;
+}
+.stripe-anthropic { background: var(--c-anthropic); }
+.stripe-external  { background: var(--c-external); }
+.stripe-lsp       { background: var(--c-lsp); }
+
+.card-body {
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+/* Repo link */
+.card-repo {
+  position: absolute;
+  top: 14px; right: 14px;
+  color: var(--muted2);
+  text-decoration: none;
+  line-height: 1;
+  transition: color 0.15s;
+  font-size: 0.85rem;
+}
+.card-repo:hover { color: var(--muted); }
+
+/* Type label */
+.card-type {
+  font-family: var(--f-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.type-anthropic { color: var(--c-anthropic); }
+.type-external  { color: var(--c-external); }
+.type-lsp       { color: var(--c-lsp); }
+
+/* Plugin name */
+.card-name {
+  font-family: var(--f-mono);
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.installed-pip {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--c-installed);
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+  top: -1px;
+  box-shadow: 0 0 6px var(--c-installed);
+}
+
+/* Author */
+.card-author {
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  margin-top: -4px;
+}
+.card-author span { color: var(--muted); }
+
+/* Description */
+.card-desc {
+  font-family: var(--f-body);
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.55;
+  flex: 1;
+}
+
+/* ── Card footer ──────────────────────────────────────────── */
+.card-footer {
+  padding: 10px 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* Popularity bar */
+.pop-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pop-bar-wrap {
+  flex: 1;
+  height: 3px;
+  background: var(--border2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.pop-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+.fill-anthropic { background: var(--c-anthropic); }
+.fill-external  { background: var(--c-external); }
+.fill-lsp       { background: var(--c-lsp); }
+
+.pop-count {
+  font-family: var(--f-mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 44px;
+  text-align: right;
+}
+.pop-count.has-data { color: var(--muted); }
+
+/* Install command */
+.install-cmd {
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  color: var(--muted2);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.install-cmd:hover {
+  border-color: var(--border2);
+  color: var(--text);
+  background: var(--surface);
+}
+.install-cmd .prompt {
+  color: var(--c-installed);
+  font-weight: 600;
+  flex-shrink: 0;
+  user-select: none;
+}
+.install-cmd.installed-cmd .prompt { color: var(--c-installed); }
+
+/* ── Empty state ──────────────────────────────────────────── */
+.empty {
+  grid-column: 1/-1;
+  padding: 96px 44px;
+  text-align: center;
+  background: var(--surface);
+}
+.empty-title {
+  font-family: var(--f-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  color: var(--muted2);
+  text-transform: uppercase;
+}
+.empty p {
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  color: var(--muted2);
+  margin-top: 8px;
+}
+
+/* ── Toast ────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--c-installed);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  transform: translateX(12px);
+  transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
+  pointer-events: none;
+  z-index: 100;
+  max-width: 320px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(0); }
+
+/* ── Sync button & status ─────────────────────────────────── */
+.sync-btn {
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.sync-btn:hover:not(:disabled) { color: var(--text); border-color: var(--muted); }
+.sync-btn:disabled { opacity: 0.4; cursor: default; }
+.deep-sync-btn { color: var(--c-external); border-color: rgba(74,159,224,0.3); }
+.deep-sync-btn:hover:not(:disabled) { border-color: var(--c-external); color: var(--c-external); }
+.sync-btn .spin { display: inline-block; }
+.sync-btn.syncing .spin { animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.status-badge {
+  font-family: var(--f-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+.status-badge.live    { color: var(--c-installed); border-color: rgba(74,198,122,0.2); background: rgba(74,198,122,0.06); }
+.status-badge.offline { color: var(--muted2);      border-color: var(--border);        background: transparent; }
+.status-badge.checking { color: var(--muted);      border-color: var(--border);        background: transparent; }
+.status-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.status-badge.live .status-dot { box-shadow: 0 0 5px var(--c-installed); }
+
+/* ── Theme toggle ─────────────────────────────────────────── */
+html { transition: background 0.25s, color 0.25s; }
+
+.theme-btn {
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.theme-btn:hover { color: var(--text); border-color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="header-top">
+    <div>
+      <div class="header-title">
+        Plugin<br><span class="dim">Registry</span>
+      </div>
+    </div>
+    <div class="header-count" id="header-count" aria-hidden="true">43</div>
+  </div>
+  <div class="header-meta">
+    <span class="header-tag">claude-plugins-official</span>
+    <div class="header-dot"></div>
+    <span class="header-tag">local cache</span>
+    <div class="header-dot"></div>
+    <span class="header-tag">no network required</span>
+  </div>
+</header>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="search-wrap">
+    <span class="search-prompt">&gt;</span>
+    <input type="search" id="search" placeholder="search plugins_" oninput="render()" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="filters">
+    <button class="filter-btn f-all active"       onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn f-anthropic"         onclick="setFilter('anthropic',this)">Anthropic</button>
+    <button class="filter-btn f-external"          onclick="setFilter('external',this)">MCP</button>
+    <button class="filter-btn f-lsp"               onclick="setFilter('lsp',this)">LSP</button>
+    <button class="filter-btn f-installed"         onclick="setFilter('installed',this)">Installed</button>
+  </div>
+  <div class="sort-wrap">
+    <span>Sort</span>
+    <select id="sort" onchange="render()">
+      <option value="popular">Popular</option>
+      <option value="name">Name A–Z</option>
+    </select>
+  </div>
+
+  <div id="status-badge" class="status-badge checking">
+    <div class="status-dot"></div>
+    <span id="status-text">checking</span>
+  </div>
+
+  <button class="sync-btn" id="sync-btn" onclick="syncFromServer()" title="Re-read local cache">
+    <span class="spin">⟳</span> Sync
+  </button>
+
+  <button class="sync-btn deep-sync-btn" id="deep-sync-btn" onclick="deepSync()" title="Pull latest from marketplace via claude CLI">
+    <span class="spin">↓</span> Update
+  </button>
+
+  <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark mode"></button>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+  <span id="stats"></span>
+  <div class="stats-legend">
+    <div class="legend-dot"><div class="dot dot-anthropic"></div> Anthropic</div>
+    <div class="legend-dot"><div class="dot dot-external"></div> MCP</div>
+    <div class="legend-dot"><div class="dot dot-lsp"></div> LSP</div>
+  </div>
+</div>
+
+<!-- Grid -->
+<div class="grid" id="grid"></div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Data ────────────────────────────────────────────────────
+
+const INSTALLED = ["claude-md-management", "frontend-design"];
+
+const PLUGINS = [
+  // Anthropic
+  { name:"agent-sdk-dev",          desc:"Claude Agent SDK Development Plugin",                                                                                                                          author:"Anthropic", type:"anthropic" },
+  { name:"claude-code-setup",      desc:"Analyze codebases and recommend tailored Claude Code automations such as hooks, skills, MCP servers, and subagents.",                                          author:"Anthropic", type:"anthropic" },
+  { name:"claude-md-management",   desc:"Tools to maintain and improve CLAUDE.md files — audit quality, capture session learnings, and keep project memory current.",                                   author:"Anthropic", type:"anthropic" },
+  { name:"code-review",            desc:"Automated code review for pull requests using multiple specialized agents with confidence-based scoring.",                                                      author:"Anthropic", type:"anthropic" },
+  { name:"code-simplifier",        desc:"Agent that simplifies and refines code for clarity, consistency, and maintainability while preserving functionality.",                                         author:"Anthropic", type:"anthropic" },
+  { name:"commit-commands",        desc:"Streamline your git workflow with simple commands for committing, pushing, and creating pull requests.",                                                       author:"Anthropic", type:"anthropic" },
+  { name:"example-plugin",         desc:"A comprehensive example plugin demonstrating all Claude Code extension options including commands, agents, skills, hooks, and MCP servers.",                   author:"Anthropic", type:"anthropic" },
+  { name:"explanatory-output-style",desc:"Adds educational insights about implementation choices and codebase patterns (mimics the deprecated Explanatory output style).",                             author:"Anthropic", type:"anthropic" },
+  { name:"feature-dev",            desc:"Comprehensive feature development workflow with specialized agents for codebase exploration, architecture design, and quality review.",                         author:"Anthropic", type:"anthropic" },
+  { name:"frontend-design",        desc:"Frontend design skill for UI/UX implementation.",                                                                                                             author:"Anthropic", type:"anthropic" },
+  { name:"hookify",                desc:"Easily create hooks to prevent unwanted behaviors by analyzing conversation patterns.",                                                                        author:"Anthropic", type:"anthropic" },
+  { name:"learning-output-style",  desc:"Interactive learning mode that requests meaningful code contributions at decision points (mimics the unshipped Learning output style).",                       author:"Anthropic", type:"anthropic" },
+  { name:"playground",             desc:"Creates interactive HTML playgrounds — self-contained single-file explorers with visual controls, live preview, and prompt output with copy button.",          author:"Anthropic", type:"anthropic" },
+  { name:"plugin-dev",             desc:"Plugin development toolkit with skills for creating agents, commands, hooks, MCP integrations, and comprehensive plugin structure guidance.",                  author:"Anthropic", type:"anthropic" },
+  { name:"pr-review-toolkit",      desc:"Comprehensive PR review agents specializing in comments, tests, error handling, type design, code quality, and code simplification.",                         author:"Anthropic", type:"anthropic" },
+  { name:"ralph-loop",             desc:"Continuous self-referential AI loops for interactive iterative development — the Ralph Wiggum technique. Runs Claude in a while-true loop until task completion.", author:"Anthropic", type:"anthropic" },
+  { name:"security-guidance",      desc:"Security reminder hook that warns about potential security issues when editing files, including command injection, XSS, and unsafe code patterns.",            author:"Anthropic", type:"anthropic" },
+  { name:"skill-creator",          desc:"Create new skills, improve existing skills, and measure skill performance. Use to create from scratch, update or optimize, run evals, or benchmark.",         author:"Anthropic", type:"anthropic" },
+  // External / MCP
+  { name:"asana",          desc:"Asana project management integration. Create and manage tasks, search projects, update assignments, track progress, and integrate your workflow.", author:"Asana",     type:"external" },
+  { name:"context7",       desc:"Upstash Context7 MCP server for up-to-date documentation lookup. Pull version-specific docs and code examples directly from source repos into your context.",         author:"Upstash",   type:"external" },
+  { name:"firebase",       desc:"Google Firebase MCP integration. Manage Firestore databases, authentication, cloud functions, hosting, and storage.",                             author:"Google",    type:"external" },
+  { name:"github",         desc:"Official GitHub MCP server for repository management. Create issues, manage pull requests, review code, search repositories, and interact with GitHub's full API.",   author:"GitHub",    type:"external" },
+  { name:"gitlab",         desc:"GitLab DevOps platform integration. Manage repositories, merge requests, CI/CD pipelines, issues, and wikis.",                                   author:"GitLab",    type:"external" },
+  { name:"greptile",       desc:"AI code review agent for GitHub and GitLab. View and resolve Greptile's PR review comments directly from Claude Code.",                           author:"Greptile",  type:"external", url:"https://greptile.com/docs" },
+  { name:"laravel-boost",  desc:"Laravel development toolkit MCP server. Intelligent assistance for Laravel including Artisan commands, Eloquent queries, routing, migrations, and code generation.",  author:"Laravel",   type:"external" },
+  { name:"linear",         desc:"Linear issue tracking integration. Create issues, manage projects, update statuses, search across workspaces, and streamline your workflow.",     author:"Linear",    type:"external" },
+  { name:"playwright",     desc:"Browser automation and end-to-end testing MCP server by Microsoft. Interact with web pages, take screenshots, fill forms, click elements, and perform automated testing.", author:"Microsoft", type:"external" },
+  { name:"serena",         desc:"Semantic code analysis MCP server providing intelligent code understanding, refactoring suggestions, and codebase navigation through LSP integration.", author:"Oraios",  type:"external" },
+  { name:"slack",          desc:"Slack workspace integration. Search messages, access channels, read threads, and stay connected with your team's communications while coding.",   author:"Slack",     type:"external" },
+  { name:"stripe",         desc:"Stripe development plugin for Claude. Payments, webhooks, and full API integration.",                                                             author:"Stripe",    type:"external", url:"https://github.com/stripe/ai" },
+  { name:"supabase",       desc:"Supabase MCP integration for database operations, authentication, storage, and real-time subscriptions. Manage projects and run SQL queries.",   author:"Supabase",  type:"external" },
+  // LSP
+  { name:"clangd-lsp",         desc:"C/C++ language server (clangd) for Claude Code — code intelligence, diagnostics, and formatting. Supports .c, .h, .cpp, .cc, .hpp, and more.", author:"Anthropic", type:"lsp" },
+  { name:"csharp-lsp",         desc:"C# language server for Claude Code, providing code intelligence and diagnostics.",                                                              author:"Anthropic", type:"lsp" },
+  { name:"gopls-lsp",          desc:"Go language server for Claude Code, providing code intelligence, refactoring, and analysis.",                                                   author:"Anthropic", type:"lsp" },
+  { name:"jdtls-lsp",          desc:"Java language server (Eclipse JDT.LS) for Claude Code, providing code intelligence and refactoring.",                                          author:"Anthropic", type:"lsp" },
+  { name:"kotlin-lsp",         desc:"Kotlin language server for Claude Code, providing code intelligence, refactoring, and analysis. Supports .kt and .kts files.",                 author:"Anthropic", type:"lsp" },
+  { name:"lua-lsp",            desc:"Lua language server for Claude Code, providing code intelligence and diagnostics.",                                                             author:"Anthropic", type:"lsp" },
+  { name:"php-lsp",            desc:"PHP language server (Intelephense) for Claude Code, providing code intelligence and diagnostics.",                                              author:"Anthropic", type:"lsp" },
+  { name:"pyright-lsp",        desc:"Python language server (Pyright) for Claude Code, providing static type checking and code intelligence.",                                       author:"Anthropic", type:"lsp" },
+  { name:"ruby-lsp",           desc:"Ruby language server for Claude Code, providing code intelligence and analysis.",                                                               author:"Anthropic", type:"lsp" },
+  { name:"rust-analyzer-lsp",  desc:"Rust language server for Claude Code, providing code intelligence and analysis.",                                                               author:"Anthropic", type:"lsp" },
+  { name:"swift-lsp",          desc:"Swift language server (SourceKit-LSP) for Claude Code, providing code intelligence for Swift projects.",                                        author:"Anthropic", type:"lsp" },
+  { name:"typescript-lsp",     desc:"TypeScript/JavaScript language server for Claude Code — go-to-definition, find references, error checking, and full code intelligence.",       author:"Anthropic", type:"lsp" },
+];
+
+const INSTALL_COUNTS = {
+  "frontend-design":324030,"context7":168830,"code-review":148806,"github":126112,
+  "code-simplifier":121217,"feature-dev":119235,"playwright":102750,"ralph-loop":100399,
+  "typescript-lsp":95464,"commit-commands":78070,"security-guidance":77466,
+  "claude-md-management":76333,"serena":58447,"pr-review-toolkit":53235,
+  "skill-creator":50465,"pyright-lsp":48906,"claude-code-setup":46953,
+  "supabase":43859,"agent-sdk-dev":36999,"explanatory-output-style":32236,
+  "plugin-dev":32029,"greptile":30502,"hookify":27136,"slack":24451,
+  "playground":22535,"linear":22326,"learning-output-style":21386,
+  "gopls-lsp":18792,"csharp-lsp":18537,"gitlab":16590,"stripe":16573,
+  "rust-analyzer-lsp":16206,"php-lsp":14534,"jdtls-lsp":14378,
+  "clangd-lsp":12618,"laravel-boost":12438,"firebase":11884,"swift-lsp":11418,
+  "kotlin-lsp":9645,"lua-lsp":7459,"asana":5269,"ruby-lsp":583,"example-plugin":31,
+};
+
+const MAX_INSTALLS = 324030;
+
+// ── Live data (overrides embedded when server is running) ────
+// Relative URL when served over HTTP (works for any host/port).
+// Absolute localhost fallback when opened as file://.
+const API = location.protocol.startsWith('http')
+  ? `${location.origin}/api/plugins`
+  : 'http://localhost:3747/api/plugins';
+
+let livePlugins       = null;
+let liveInstallCounts = null;
+let liveInstalled     = null;
+let lastSynced        = null;
+
+function activePlugins()      { return livePlugins       ?? PLUGINS; }
+function activeInstallCounts(){ return liveInstallCounts ?? INSTALL_COUNTS; }
+function activeInstalled()    { return liveInstalled      ?? INSTALLED; }
+
+// ── Status badge ─────────────────────────────────────────────
+function setStatus(state, label) {
+  const badge = document.getElementById("status-badge");
+  const text  = document.getElementById("status-text");
+  badge.className = `status-badge ${state}`;
+  text.textContent = label ?? state;
+}
+
+// ── Sync from server ─────────────────────────────────────────
+async function syncFromServer() {
+  const btn = document.getElementById("sync-btn");
+  btn.disabled = true;
+  btn.classList.add("syncing");
+  setStatus("checking", "syncing…");
+
+  try {
+    const resp = await fetch(API, { signal: AbortSignal.timeout(3000) });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+
+    livePlugins       = data.plugins       ?? null;
+    liveInstallCounts = data.installCounts ?? null;
+    liveInstalled     = data.installed     ?? null;
+    lastSynced        = data.fetchedAt     ?? null;
+
+    const t = lastSynced ? new Date(lastSynced).toLocaleTimeString() : "now";
+    setStatus("live", `live · ${t}`);
+    render();
+  } catch {
+    setStatus("offline", "offline");
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove("syncing");
+  }
+}
+
+// ── State ────────────────────────────────────────────────────
+let activeFilter = "all";
+
+// ── Helpers ──────────────────────────────────────────────────
+function fmtCount(n) {
+  if (!n) return null;
+  if (n >= 1000) return (n / 1000).toFixed(n >= 100000 ? 0 : n >= 10000 ? 0 : 1) + "k";
+  return String(n);
+}
+
+function popPct(n) {
+  if (!n) return 0;
+  return Math.max(2, Math.round((n / MAX_INSTALLS) * 100));
+}
+
+// ── Filter ───────────────────────────────────────────────────
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  render();
+}
+
+// ── Render ───────────────────────────────────────────────────
+function render() {
+  const q    = document.getElementById("search").value.toLowerCase().trim();
+  const sort = document.getElementById("sort").value;
+
+  const counts   = activeInstallCounts();
+  const instList = activeInstalled();
+
+  let list = activePlugins().map(p => ({
+    ...p,
+    installs:  counts[p.name] || 0,
+    installed: instList.includes(p.name),
+    // fallback: construct GitHub URL for embedded data that has no url
+    url: p.url || `https://github.com/anthropics/claude-plugins-official/tree/main/${p.type === 'external' ? 'external_plugins' : 'plugins'}/${p.name}`,
+  }));
+
+  if (activeFilter === "installed") list = list.filter(p => p.installed);
+  else if (activeFilter !== "all")  list = list.filter(p => p.type === activeFilter);
+
+  if (q) list = list.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    p.desc.toLowerCase().includes(q) ||
+    p.author.toLowerCase().includes(q)
+  );
+
+  if (sort === "popular") list.sort((a,b) => b.installs - a.installs);
+  else                    list.sort((a,b) => a.name.localeCompare(b.name));
+
+  // Stats
+  document.getElementById("stats").innerHTML =
+    `<em>${list.length}</em> of <em>${activePlugins().length}</em> plugins`;
+  document.getElementById("header-count").textContent = list.length;
+
+  // Grid
+  const grid = document.getElementById("grid");
+
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty"><div class="empty-title">Nothing found</div><p>Try a different search term or filter.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map((p, i) => {
+    const count  = fmtCount(p.installs);
+    const pct    = popPct(p.installs);
+    const cmd    = `/plugin install ${p.name}`;
+    const delay  = Math.min(i * 28, 500);
+
+    return `
+<div class="card" style="animation-delay:${delay}ms">
+  <div class="card-stripe stripe-${p.type}"></div>
+  ${p.url ? `<a class="card-repo" href="${p.url}" target="_blank" rel="noopener" title="View repository">↗</a>` : ''}
+  <div class="card-body">
+    <div class="card-type type-${p.type}">${p.type === 'external' ? 'MCP' : p.type.toUpperCase()}</div>
+    <div class="card-name">
+      ${p.name}${p.installed ? ' <span class="installed-pip" title="Installed"></span>' : ''}
+    </div>
+    <div class="card-author">by&nbsp;${p.author}</div>
+    <div class="card-desc">${p.desc}</div>
+  </div>
+  <div class="card-footer">
+    <div class="pop-row">
+      <div class="pop-bar-wrap"><div class="pop-bar-fill fill-${p.type}" style="width:${pct}%"></div></div>
+      <div class="pop-count ${count ? 'has-data' : ''}">${count ? count + ' installs' : '—'}</div>
+    </div>
+    <div class="install-cmd${p.installed ? ' installed-cmd' : ''}" onclick="copyCmd('${cmd}')" title="Click to copy">
+      <span class="prompt">${p.installed ? '✓' : '$'}</span>${cmd}
+    </div>
+  </div>
+</div>`;
+  }).join("");
+}
+
+// ── Copy ─────────────────────────────────────────────────────
+function copyCmd(cmd) {
+  navigator.clipboard.writeText(cmd).then(() => {
+    const t = document.getElementById("toast");
+    t.textContent = "Copied  " + cmd;
+    t.classList.add("show");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove("show"), 2200);
+  });
+}
+
+// ── Deep sync (calls claude CLI via server) ───────────────────
+async function deepSync() {
+  const btn = document.getElementById("deep-sync-btn");
+  btn.disabled = true;
+  btn.classList.add("syncing");
+  btn.querySelector(".spin").textContent = "↓";
+  setStatus("checking", "updating…");
+
+  try {
+    const resp = await fetch(API.replace('/api/plugins', '/api/deep-sync'),
+      { signal: AbortSignal.timeout(65_000) });
+    const data = await resp.json();
+
+    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+    livePlugins       = data.plugins       ?? null;
+    liveInstallCounts = data.installCounts ?? null;
+    liveInstalled     = data.installed     ?? null;
+    lastSynced        = data.fetchedAt     ?? null;
+
+    const t = lastSynced ? new Date(lastSynced).toLocaleTimeString() : "now";
+    setStatus("live", `live · ${t}`);
+
+    const toast = document.getElementById("toast");
+    toast.textContent = data.refreshLog ? `Updated · ${data.refreshLog.split('\n')[0]}` : "Marketplace updated";
+    toast.classList.add("show");
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove("show"), 3000);
+
+    render();
+  } catch (err) {
+    setStatus("offline", "update failed");
+    const toast = document.getElementById("toast");
+    toast.textContent = `Update failed: ${err.message}`;
+    toast.classList.add("show");
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove("show"), 4000);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove("syncing");
+    btn.querySelector(".spin").textContent = "↓";
+  }
+}
+
+// ── Theme ─────────────────────────────────────────────────────
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀ Light' : '◗ Dark';
+}
+
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('plugin-browser-theme', next);
+  applyTheme(next);
+}
+
+function initTheme() {
+  const saved   = localStorage.getItem('plugin-browser-theme');
+  const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(saved ?? (sysDark ? 'dark' : 'light'));
+}
+
+// ── Init ─────────────────────────────────────────────────────
+initTheme();
+render();
+syncFromServer();
+</script>
+</body>
+</html>
