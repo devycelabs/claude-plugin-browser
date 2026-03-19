@@ -234,8 +234,29 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
 .filter-btn.active.f-external  { background: var(--c-external);   border-color: var(--c-external);   color: #fff; }
 .filter-btn.active.f-lsp       { background: var(--c-lsp);        border-color: var(--c-lsp);        color: #fff; }
 .filter-btn.active.f-installed { background: var(--c-installed);  border-color: var(--c-installed);  color: #000; }
-.filter-btn.active.f-updates   { background: #E8930A;             border-color: #E8930A;             color: #1C0A0A; }
-.filter-btn.f-updates          { color: #E8930A; border-color: rgba(232,147,10,0.35); }
+.filter-btn.active.f-updates    { background: #E8930A;             border-color: #E8930A;             color: #1C0A0A; }
+.filter-btn.f-updates           { color: #E8930A; border-color: rgba(232,147,10,0.35); }
+.filter-btn.active.f-community  { background: #a78bfa;             border-color: #a78bfa;             color: #1a0050; }
+.filter-btn.f-community         { color: #a78bfa; border-color: rgba(167,139,250,0.35); }
+
+/* ── Community / archived ───────────────────────────────────── */
+.card.archived { opacity: 0.55; }
+.card.archived:hover { opacity: 0.75; }
+.archived-badge {
+  display: inline-block;
+  font-size: 0.6rem; font-family: var(--f-mono); font-weight: 600;
+  color: var(--muted); background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: 3px;
+  padding: 1px 5px; position: relative; top: -1px; letter-spacing: 0.02em;
+}
+.community-badge {
+  display: inline-block;
+  font-size: 0.6rem; font-family: var(--f-mono); font-weight: 600;
+  color: #a78bfa; background: rgba(167,139,250,0.1);
+  border: 1px solid rgba(167,139,250,0.25); border-radius: 3px;
+  padding: 1px 5px; letter-spacing: 0.02em;
+}
+.stripe-community { background: #a78bfa; }
 
 /* Sort */
 .sort-wrap {
@@ -675,6 +696,7 @@ html { transition: background 0.25s, color 0.25s; }
     <button class="filter-btn f-lsp"               onclick="setFilter('lsp',this)">LSP</button>
     <button class="filter-btn f-installed"         onclick="setFilter('installed',this)">Installed</button>
     <button class="filter-btn f-updates" id="updates-tab" onclick="setFilter('updates',this)" style="display:none">Updates <span id="updates-count"></span></button>
+    <button class="filter-btn f-community" id="community-tab" onclick="setFilter('community',this)" style="display:none">Community <span id="community-count"></span></button>
   </div>
   <div class="sort-wrap">
     <span>Sort</span>
@@ -807,8 +829,9 @@ const API = location.protocol.startsWith('http')
 let livePlugins         = null;
 let liveInstallCounts   = null;
 let liveInstalled       = null;
-let liveInstalledDetails= null; // { name: { version, gitCommitSha, installedAt } }
-let liveUpdates         = null; // { name: { updateAvailable, latestCommitDate, ... } }
+let liveInstalledDetails= null;
+let liveUpdates         = null;
+let communityPlugins    = null; // fetched from /api/community
 let lastSynced          = null;
 
 function activePlugins()      { return livePlugins       ?? PLUGINS; }
@@ -844,8 +867,9 @@ async function syncFromServer() {
     const t = lastSynced ? new Date(lastSynced).toLocaleTimeString() : "now";
     setStatus("live", `live · ${t}`);
     render();
-    // Kick off update check in background — non-blocking
+    // Kick off background checks — non-blocking
     fetchUpdateStatus();
+    fetchCommunityPlugins();
   } catch {
     setStatus("offline", "offline");
   } finally {
@@ -875,6 +899,23 @@ async function fetchUpdateStatus() {
     }
     render();
   } catch { /* update check is best-effort */ }
+}
+
+async function fetchCommunityPlugins() {
+  const communityUrl = API.replace('/api/plugins', '/api/community');
+  try {
+    const resp = await fetch(communityUrl, { signal: AbortSignal.timeout(15_000) });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    communityPlugins = data.plugins ?? [];
+    const tab = document.getElementById('community-tab');
+    const cnt = document.getElementById('community-count');
+    if (communityPlugins.length > 0) {
+      cnt.textContent = `(${communityPlugins.length})`;
+      tab.style.display = '';
+    }
+    render();
+  } catch { /* community fetch is best-effort */ }
 }
 
 // ── State ────────────────────────────────────────────────────
@@ -918,9 +959,28 @@ function render() {
     url: p.url || `https://github.com/anthropics/claude-plugins-official/tree/main/${p.type === 'external' ? 'external_plugins' : 'plugins'}/${p.name}`,
   }));
 
-  if (activeFilter === "installed") list = list.filter(p => p.installed);
-  else if (activeFilter === "updates") list = list.filter(p => p.hasUpdate);
-  else if (activeFilter !== "all")  list = list.filter(p => p.type === activeFilter);
+  // Merge community plugins into list when viewing All or Community
+  if (activeFilter === 'community') {
+    list = (communityPlugins ?? []).map(p => ({
+      ...p,
+      installs:  0,
+      installed: activeInstalled().includes(p.name),
+      hasUpdate: false,
+      updateInfo: null,
+    }));
+  } else {
+    if (communityPlugins?.length && activeFilter === 'all') {
+      const officialNames = new Set(list.map(p => p.name));
+      const extras = communityPlugins
+        .filter(p => !officialNames.has(p.name))
+        .map(p => ({ ...p, installs: 0, installed: activeInstalled().includes(p.name),
+                     hasUpdate: false, updateInfo: null }));
+      list = [...list, ...extras];
+    }
+    if (activeFilter === "installed") list = list.filter(p => p.installed);
+    else if (activeFilter === "updates") list = list.filter(p => p.hasUpdate);
+    else if (activeFilter !== "all")  list = list.filter(p => p.type === activeFilter);
+  }
 
   if (q) list = list.filter(p =>
     p.name.toLowerCase().includes(q) ||
@@ -950,14 +1010,18 @@ function render() {
     const cmd    = `/plugin install ${p.name}`;
     const delay  = Math.min(i * 28, 500);
 
+    const isCommunity = p.type === 'community';
+    const typeLabel   = isCommunity ? 'community'
+                      : p.type === 'external' ? 'MCP' : p.type.toUpperCase();
+
     return `
-<div class="card" style="animation-delay:${delay}ms">
+<div class="card${p.archived ? ' archived' : ''}" style="animation-delay:${delay}ms">
   <div class="card-stripe stripe-${p.type}"></div>
   ${p.url ? `<a class="card-repo" href="${p.url}" target="_blank" rel="noopener" title="View repository">↗</a>` : ''}
   <div class="card-body">
-    <div class="card-type type-${p.type}">${p.type === 'external' ? 'MCP' : p.type.toUpperCase()}</div>
+    <div class="card-type type-${p.type}">${isCommunity ? '<span class="community-badge">community</span>' : typeLabel}</div>
     <div class="card-name">
-      ${p.name}${p.installed ? ' <span class="installed-pip" title="Installed"></span>' : ''}${p.hasUpdate ? ' <span class="update-pip" title="Update available — reinstall to get latest">↑ update</span>' : ''}
+      ${p.name}${p.installed ? ' <span class="installed-pip" title="Installed"></span>' : ''}${p.hasUpdate ? ' <span class="update-pip" title="Update available — reinstall to get latest">↑ update</span>' : ''}${p.archived ? ' <span class="archived-badge" title="No longer actively maintained">archived</span>' : ''}
     </div>
     <div class="card-author">by&nbsp;${p.author}${p.updateInfo?.latestCommitDate ? ` <span style="opacity:0.45;font-size:0.75em">· latest ${new Date(p.updateInfo.latestCommitDate).toLocaleDateString()}</span>` : ''}</div>
     <div class="card-desc">${p.desc}</div>

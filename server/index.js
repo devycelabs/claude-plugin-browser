@@ -99,9 +99,56 @@ function loadData() {
            pluginCount: plugins.length, plugins, installCounts, installed, installedDetails };
 }
 
-// ── Update checker ────────────────────────────────────────────
+// ── Community registry ────────────────────────────────────────
 
 const https = require('https');
+
+const COMMUNITY_REGISTRY = 'devycelabs/claude-plugins-community';
+const COMMUNITY_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+let _communityCache = null;
+
+async function fetchCommunityRegistry() {
+  if (_communityCache && (Date.now() - _communityCache.fetchedAt) < COMMUNITY_CACHE_TTL) {
+    return { ..._communityCache.data, cached: true };
+  }
+
+  const raw = await githubGetRaw(
+    `repos/${COMMUNITY_REGISTRY}/contents/registry.json`
+  );
+  if (!raw) return { plugins: [], error: 'registry unavailable' };
+
+  let registry;
+  try {
+    const content = Buffer.from(raw.content, 'base64').toString('utf8');
+    registry = JSON.parse(content);
+  } catch {
+    return { plugins: [], error: 'registry parse error' };
+  }
+
+  const today = new Date();
+  const plugins = (registry.plugins ?? []).map(p => ({
+    name:        p.name,
+    displayName: p.displayName || p.name,
+    desc:        p.description || '',
+    author:      p.author,
+    repo:        p.repo,
+    marketplace: p.marketplace,
+    tags:        p.tags || [],
+    addedAt:     p.addedAt,
+    lastVerified:p.lastVerified,
+    status:      p.status || 'active',
+    archived:    p.status === 'archived',
+    pendingVerification: p.status === 'active' && new Date(p.verificationDue) < today,
+    type:        'community',
+    url:         `https://github.com/${p.repo}`,
+  }));
+
+  const data = { fetchedAt: new Date().toISOString(), pluginCount: plugins.length, plugins };
+  _communityCache = { data, fetchedAt: Date.now() };
+  return data;
+}
+
+// ── Update checker ────────────────────────────────────────────
 
 let _updateCache = null;
 const UPDATE_CACHE_TTL = 60 * 60 * 1000; // 1 hour
@@ -126,6 +173,10 @@ function githubGet(apiPath) {
     req.on('error', () => resolve(null));
   });
 }
+
+// Like githubGet but returns full parsed JSON regardless of status code
+// (needed for Contents API which returns an object with base64-encoded content)
+const githubGetRaw = githubGet;
 
 async function checkUpdates() {
   if (_updateCache && (Date.now() - _updateCache.fetchedAt) < UPDATE_CACHE_TTL) {
@@ -239,6 +290,19 @@ const httpServer = http.createServer((req, res) => {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('browser/index.html not found');
     }
+    return;
+  }
+
+  if (url.pathname === '/api/community') {
+    fetchCommunityRegistry()
+      .then(data => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(data));
+      })
+      .catch(err => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message, plugins: [] }));
+      });
     return;
   }
 
