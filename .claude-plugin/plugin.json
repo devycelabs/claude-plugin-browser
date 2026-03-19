@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "Local web UI for browsing the official Claude Code plugin marketplace. Shows install counts, installed status, and one-click copy of install commands.",
   "author": {
-    "name": "TODO_YOUR_NAME",
-    "email": "TODO_YOUR_EMAIL",
-    "url": "https://github.com/TODO_GITHUB_USERNAME"
+    "name": "Devyce Labs",
+    "email": "devycelabs@users.noreply.github.com",
+    "url": "https://github.com/devycelabs"
   },
-  "homepage": "https://github.com/TODO_GITHUB_USERNAME/claude-plugin-browser",
-  "repository": "https://github.com/TODO_GITHUB_USERNAME/claude-plugin-browser",
+  "homepage": "https://github.com/devycelabs/claude-plugin-browser",
+  "repository": "https://github.com/devycelabs/claude-plugin-browser",
   "license": "MIT",
   "keywords": ["plugins", "marketplace", "browser", "discovery", "mcp", "ui"],
   "skills": "./skills",

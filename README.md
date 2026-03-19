@@ -14,7 +14,7 @@ A local web UI for browsing the official Claude Code plugin marketplace.
 ## Install via Claude Code
 
 ```
-/plugin marketplace add TODO_GITHUB_USERNAME/claude-plugin-browser
+/plugin marketplace add devycelabs/claude-plugin-browser
 /plugin install plugin-browser
 ```
 
