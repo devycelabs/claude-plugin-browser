@@ -11,7 +11,10 @@
       "name": "plugin-browser",
       "description": "Local web UI for browsing the official Claude Code plugin marketplace. Shows install counts, installed status, update availability, and one-click copy of install commands.",
       "category": "productivity",
-      "source": ".",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/devycelabs/claude-plugin-browser.git"
+      },
       "homepage": "https://github.com/devycelabs/claude-plugin-browser"
     }
   ]
