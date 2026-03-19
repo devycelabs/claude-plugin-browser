@@ -15,14 +15,20 @@ const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
 
-const PORT         = parseInt(process.env.PLUGIN_BROWSER_PORT || '3747', 10);
+// Guard: MCP env substitution may pass literal "${VAR}" when the var is unset
+function env(name, fallback = '') {
+  const v = process.env[name];
+  return (!v || /^\$\{[^}]+\}$/.test(v)) ? fallback : v;
+}
+
+const PORT         = parseInt(env('PLUGIN_BROWSER_PORT', '3747'), 10);
 const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
 const MARKETPLACE  = 'claude-plugins-official';
 const MKT_DIR      = path.join(PLUGINS_BASE, 'marketplaces', MARKETPLACE);
 const BROWSER_HTML = path.join(__dirname, '..', 'browser', 'index.html');
 const LICENSE_FILE = path.join(__dirname, '..', 'LICENSE');
 const PRIVACY_FILE = path.join(__dirname, '..', 'PRIVACY.md');
-const PLUGIN_DATA  = process.env.CLAUDE_PLUGIN_DATA || path.join(PLUGINS_BASE, 'data', 'plugin-browser');
+const PLUGIN_DATA  = env('CLAUDE_PLUGIN_DATA') || path.join(PLUGINS_BASE, 'data', 'plugin-browser');
 const FONTS_DIR    = path.join(PLUGIN_DATA, 'fonts');
 
 // ── Plugin data ──────────────────────────────────────────────

@@ -1,3 +1,8 @@
+---
+name: plugin-browser
+description: Open the local Claude Code Plugin Browser UI. Use this skill when the user asks to "open plugin browser", "show plugin browser", "browse plugins", "open the marketplace UI", or runs /plugin-browser.
+---
+
 # Plugin Browser
 
 Open the local Claude Code Plugin Browser UI.

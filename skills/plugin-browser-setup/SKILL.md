@@ -1,3 +1,8 @@
+---
+name: plugin-browser-setup
+description: Guide the user through configuring the Plugin Browser after installation. Use this skill when the user asks to "set up plugin browser", "configure plugin browser", "plugin browser not working", or runs /plugin-browser:setup.
+---
+
 # Plugin Browser: Setup
 
 Guide the user through configuring the Plugin Browser after installation.

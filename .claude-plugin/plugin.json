@@ -11,14 +11,5 @@
   "repository": "https://github.com/devycelabs/claude-plugin-browser",
   "license": "MIT",
   "keywords": ["plugins", "marketplace", "browser", "discovery", "mcp", "ui"],
-  "skills": "./skills",
-  "mcpServers": "./.claude-plugin/mcp.json",
-  "hooks": {
-    "SessionStart": [
-      {
-        "type": "command",
-        "command": "node \"${CLAUDE_PLUGIN_ROOT}/server/setup-check.js\""
-      }
-    ]
-  }
+  "mcpServers": "./.claude-plugin/mcp.json"
 }

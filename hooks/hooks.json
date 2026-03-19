@@ -1,0 +1,16 @@
+{
+  "description": "Check setup status and download fonts on session start",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/server/setup-check.js\""
+          }
+        ]
+      }
+    ]
+  }
+}

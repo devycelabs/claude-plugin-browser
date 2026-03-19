@@ -41,19 +41,39 @@ The plugin ships a combined server (`server/index.js`) that:
 
 When the MCP server isn't present, the skill prompts you to start the node server manually, or you can open the HTML file directly as a fallback.
 
+## Skills
+
+| Skill | Trigger | Purpose |
+|-------|---------|---------|
+| `plugin-browser` | "open plugin browser", `/plugin-browser` | Opens the browser UI |
+| `plugin-browser-setup` | "set up plugin browser", `/plugin-browser:setup` | Guided post-install configuration |
+
+## Hooks
+
+**SessionStart** — runs `server/setup-check.js` on every session start. Checks if the server is reachable; prints one-time setup instructions if not. Downloads fonts on first run.
+
 ## Structure
 
 ```
 plugin-browser/
 ├── .claude-plugin/
-│   ├── plugin.json       ← plugin manifest
-│   └── mcp.json          ← MCP server config
+│   ├── plugin.json           ← plugin manifest
+│   └── mcp.json              ← MCP server config
 ├── browser/
-│   └── index.html        ← the web UI
+│   └── index.html            ← the web UI
+├── hooks/
+│   └── hooks.json            ← SessionStart hook
 ├── server/
-│   └── index.js          ← combined MCP + HTTP server
+│   ├── index.js              ← combined MCP + HTTP server
+│   ├── fonts.js              ← one-time font download
+│   └── setup-check.js        ← SessionStart hook script
 ├── skills/
-│   └── plugin-browser/
-│       └── SKILL.md      ← /plugin-browser skill
+│   ├── plugin-browser/
+│   │   └── SKILL.md          ← /plugin-browser skill
+│   └── plugin-browser-setup/
+│       └── SKILL.md          ← /plugin-browser:setup skill
+├── LICENSE
+├── PRIVACY.md
+├── marketplace.json          ← for claude plugin marketplace add
 └── README.md
 ```

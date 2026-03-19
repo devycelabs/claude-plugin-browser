@@ -13,10 +13,16 @@ const path = require('path');
 const os   = require('os');
 const { ensureFonts } = require('./fonts');
 
-const PLUGIN_ROOT  = process.env.CLAUDE_PLUGIN_ROOT  || path.join(__dirname, '..');
-const PLUGIN_DATA  = process.env.CLAUDE_PLUGIN_DATA  || path.join(os.homedir(), '.claude', 'plugins', 'data', 'plugin-browser');
-const EXTERNAL_URL = process.env.PLUGIN_BROWSER_URL  || '';
-const PORT         = process.env.PLUGIN_BROWSER_PORT || '3747';
+// Guard: MCP env substitution may pass literal "${VAR}" when the var is unset
+function env(name, fallback = '') {
+  const v = process.env[name];
+  return (!v || /^\$\{[^}]+\}$/.test(v)) ? fallback : v;
+}
+
+const PLUGIN_ROOT  = env('CLAUDE_PLUGIN_ROOT')  || path.join(__dirname, '..');
+const PLUGIN_DATA  = env('CLAUDE_PLUGIN_DATA')  || path.join(os.homedir(), '.claude', 'plugins', 'data', 'plugin-browser');
+const EXTERNAL_URL = env('PLUGIN_BROWSER_URL');
+const PORT         = env('PLUGIN_BROWSER_PORT') || '3747';
 const FLAG_FILE    = path.join(PLUGIN_DATA, '.setup-complete');
 
 // If user configured an external URL, mark as set up and exit silently
