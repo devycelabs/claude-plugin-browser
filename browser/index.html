@@ -887,7 +887,7 @@ function communityIsAdded() {
 
 function updatePromo() {
   const banner = document.getElementById('promo-banner');
-  if (!communityPlugins?.length || communityIsAdded()) { banner.innerHTML = ''; return; }
+  if (liveMarketplaces === null || communityIsAdded()) { banner.innerHTML = ''; return; }
   const addCmd = `/plugin marketplace add ${COMMUNITY_MKT_REPO}`;
   banner.innerHTML = `
   <div class="promo-card">
@@ -935,6 +935,7 @@ async function syncFromServer() {
 
     const t = lastSynced ? new Date(lastSynced).toLocaleTimeString() : "now";
     setStatus("live", `live · ${t}`);
+    updatePromo();
     render();
     // Kick off background checks — non-blocking
     fetchUpdateStatus();
