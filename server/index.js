@@ -14,6 +14,7 @@ const http = require('http');
 const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
+const { ensureFonts } = require('./fonts');
 
 // Guard: MCP env substitution may pass literal "${VAR}" when the var is unset
 function env(name, fallback = '') {
@@ -355,6 +356,9 @@ const httpServer = http.createServer((req, res) => {
 
   res.writeHead(404); res.end();
 });
+
+// Ensure fonts are cached in the correct PLUGIN_DATA dir (best-effort, non-blocking)
+ensureFonts(PLUGIN_DATA).catch(() => {});
 
 httpServer.listen(PORT, '127.0.0.1', () => {
   // Only log when run standalone (not as MCP server via stdio)

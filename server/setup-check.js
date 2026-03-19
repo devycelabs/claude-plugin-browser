@@ -11,8 +11,6 @@ const http = require('http');
 const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
-const { ensureFonts } = require('./fonts');
-
 // Guard: MCP env substitution may pass literal "${VAR}" when the var is unset
 function env(name, fallback = '') {
   const v = process.env[name];
@@ -69,7 +67,5 @@ function markComplete(note) {
   try {
     fs.mkdirSync(PLUGIN_DATA, { recursive: true });
     fs.writeFileSync(FLAG_FILE, JSON.stringify({ configuredAt: new Date().toISOString(), note }));
-    // Download fonts in the background — non-blocking, best-effort
-    ensureFonts(PLUGIN_DATA).catch(() => {});
   } catch { /* data dir may not be writable in all envs */ }
 }
