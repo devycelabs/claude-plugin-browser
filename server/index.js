@@ -86,6 +86,7 @@ function loadData() {
   // Installed detail: version + gitCommitSha per plugin name
   const installedDetails = {};
   for (const [key, installs] of Object.entries(installedRaw?.plugins ?? {})) {
+    if (!Array.isArray(installs) || installs.length === 0) continue;
     const atIdx = key.indexOf('@');
     const name = atIdx === -1 ? key : key.slice(0, atIdx);
     const mkt  = atIdx === -1 ? null  : key.slice(atIdx + 1);
@@ -174,8 +175,7 @@ function githubGet(apiPath) {
   });
 }
 
-// Like githubGet but returns full parsed JSON regardless of status code
-// (needed for Contents API which returns an object with base64-encoded content)
+// Alias — GitHub Contents API returns 200 with base64-encoded body, same as other endpoints
 const githubGetRaw = githubGet;
 
 async function checkUpdates() {
@@ -187,6 +187,7 @@ async function checkUpdates() {
   const updates = [];
 
   for (const [key, installs] of Object.entries(installedRaw?.plugins ?? {})) {
+    if (!Array.isArray(installs) || installs.length === 0) continue;
     const atIdx = key.indexOf('@');
     const name  = atIdx === -1 ? key : key.slice(0, atIdx);
     const mkt   = atIdx === -1 ? null : key.slice(atIdx + 1);

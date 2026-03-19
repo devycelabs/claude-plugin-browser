@@ -21,12 +21,14 @@ const FONTS_CSS_URL =
 // Modern Chrome UA — required so Google Fonts returns WOFF2 (not TTF)
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 
-function get(url, binary = false) {
+function get(url, binary = false, _redirects = 0) {
   return new Promise((resolve, reject) => {
     const req = https.get(url, { headers: { 'User-Agent': UA } }, res => {
-      // Follow one redirect (gstatic URLs sometimes redirect)
+      // Follow at most one redirect (gstatic URLs sometimes redirect)
       if ((res.statusCode === 301 || res.statusCode === 302) && res.headers.location) {
-        return resolve(get(res.headers.location, binary));
+        res.resume();
+        if (_redirects >= 1) return reject(new Error(`Too many redirects for ${url}`));
+        return resolve(get(res.headers.location, binary, _redirects + 1));
       }
       if (res.statusCode !== 200) {
         res.resume();

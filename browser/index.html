@@ -920,6 +920,10 @@ async function fetchCommunityPlugins() {
 let activeFilter = "all";
 
 // ── Helpers ──────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function fmtCount(n) {
   if (!n) return null;
   if (n >= 1000) return (n / 1000).toFixed(n >= 100000 ? 0 : n >= 10000 ? 0 : 1) + "k";
@@ -989,9 +993,12 @@ function render() {
   if (sort === "popular") list.sort((a,b) => b.installs - a.installs);
   else                    list.sort((a,b) => a.name.localeCompare(b.name));
 
-  // Stats
+  // Stats — total pool includes community extras when in "all" view
+  const totalPool = activeFilter === 'community'
+    ? (communityPlugins?.length ?? 0)
+    : activePlugins().length + (activeFilter === 'all' ? (communityPlugins?.filter(p => !new Set(activePlugins().map(q => q.name)).has(p.name)).length ?? 0) : 0);
   document.getElementById("stats").innerHTML =
-    `<em>${list.length}</em> of <em>${activePlugins().length}</em> plugins`;
+    `<em>${list.length}</em> of <em>${totalPool}</em> plugins`;
   document.getElementById("header-count").textContent = list.length;
 
   // Grid
@@ -1012,25 +1019,28 @@ function render() {
     const typeLabel   = isCommunity ? 'community'
                       : p.type === 'external' ? 'MCP' : p.type.toUpperCase();
 
+    // safe URL: allow http/https only
+    const safeUrl = p.url && /^https?:\/\//.test(p.url) ? p.url : '';
+
     return `
 <div class="card${p.archived ? ' archived' : ''}" style="animation-delay:${delay}ms">
-  <div class="card-stripe stripe-${p.type}"></div>
-  ${p.url ? `<a class="card-repo" href="${p.url}" target="_blank" rel="noopener" title="View repository">↗</a>` : ''}
+  <div class="card-stripe stripe-${esc(p.type)}"></div>
+  ${safeUrl ? `<a class="card-repo" href="${esc(safeUrl)}" target="_blank" rel="noopener" title="View repository">↗</a>` : ''}
   <div class="card-body">
-    <div class="card-type type-${p.type}">${isCommunity ? '<span class="community-badge">community</span>' : typeLabel}</div>
+    <div class="card-type type-${esc(p.type)}">${isCommunity ? '<span class="community-badge">community</span>' : esc(typeLabel)}</div>
     <div class="card-name">
-      ${p.name}${p.installed ? ' <span class="installed-pip" title="Installed"></span>' : ''}${p.hasUpdate ? ' <span class="update-pip" title="Update available — reinstall to get latest">↑ update</span>' : ''}${p.archived ? ' <span class="archived-badge" title="No longer actively maintained">archived</span>' : ''}
+      ${esc(p.name)}${p.installed ? ' <span class="installed-pip" title="Installed"></span>' : ''}${p.hasUpdate ? ' <span class="update-pip" title="Update available — reinstall to get latest">↑ update</span>' : ''}${p.archived ? ' <span class="archived-badge" title="No longer actively maintained">archived</span>' : ''}
     </div>
-    <div class="card-author">by&nbsp;${p.author}${p.updateInfo?.latestCommitDate ? ` <span style="opacity:0.45;font-size:0.75em">· latest ${new Date(p.updateInfo.latestCommitDate).toLocaleDateString()}</span>` : ''}</div>
-    <div class="card-desc">${p.desc}</div>
+    <div class="card-author">by&nbsp;${esc(p.author)}${p.updateInfo?.latestCommitDate ? ` <span style="opacity:0.45;font-size:0.75em">· latest ${esc(new Date(p.updateInfo.latestCommitDate).toLocaleDateString())}</span>` : ''}</div>
+    <div class="card-desc">${esc(p.desc)}</div>
   </div>
   <div class="card-footer">
     <div class="pop-row">
-      <div class="pop-bar-wrap"><div class="pop-bar-fill fill-${p.type}" style="width:${pct}%"></div></div>
+      <div class="pop-bar-wrap"><div class="pop-bar-fill fill-${esc(p.type)}" style="width:${pct}%"></div></div>
       <div class="pop-count ${count ? 'has-data' : ''}">${count ? count + ' installs' : '—'}</div>
     </div>
-    <div class="install-cmd${p.installed ? ' installed-cmd' : ''}" onclick="copyCmd('${cmd}')" title="Click to copy">
-      <span class="prompt">${p.installed ? '✓' : '$'}</span>${cmd}
+    <div class="install-cmd${p.installed ? ' installed-cmd' : ''}" onclick="copyCmd('${esc(cmd)}')" title="Click to copy">
+      <span class="prompt">${p.installed ? '✓' : '$'}</span>${esc(cmd)}
     </div>
   </div>
 </div>`;

@@ -33,4 +33,4 @@ Open the local Claude Code Plugin Browser UI.
 ## Notes
 - The server runs on port **3747** and only binds to `127.0.0.1` — it is not exposed to the network.
 - The browser updates live when the **⟳ Sync** button is clicked.
-- No network connection is required — all data is read from `~/.claude/plugins/`.
+- Official plugin data is read from `~/.claude/plugins/` (no network needed). Community plugins and update checks fetch from GitHub when available.
