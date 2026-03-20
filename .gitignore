@@ -4,3 +4,4 @@ Thumbs.db
 *.log
 .env
 claude-plugins-official/
+VERSIONING.md
