@@ -322,6 +322,31 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
   border-bottom: 1px solid rgba(56,189,248,0.12);
   background: rgba(56,189,248,0.03);
 }
+.section-divider-added {
+  grid-column: 1/-1;
+  padding: 8px 20px;
+  font-family: var(--f-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  color: rgba(167,139,250,0.65);
+  border-bottom: 1px solid rgba(167,139,250,0.12);
+  background: rgba(167,139,250,0.03);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-divider-added a {
+  color: rgba(167,139,250,0.4);
+  text-decoration: none;
+  font-size: 0.6rem;
+  border-bottom: 1px solid currentColor;
+  transition: color 0.15s;
+}
+.section-divider-added a:hover { color: #a78bfa; }
+.section-divider-added .mkt-count {
+  margin-left: auto;
+  opacity: 0.45;
+}
 
 /* Sort */
 .sort-wrap {
@@ -1217,15 +1242,20 @@ async function fetchAddedPlugins() {
 
 function applyDiscoveredDedup() {
   if (!discoveredPlugins) return;
-  const taken = new Set([
+  const takenNames = new Set([
     ...activePlugins().map(p => p.name),
     ...(addedPlugins ?? []).map(p => p.name),
   ]);
+  // Also exclude by repo — catches cases where plugin name differs but repo matches an added marketplace
+  const takenRepos = new Set(
+    (addedPlugins ?? []).map(p => p.marketplaceRepo).filter(Boolean)
+  );
+  const exclude = p => takenNames.has(p.name) || (p.repo && takenRepos.has(p.repo));
   const all = discoveredPlugins._raw ?? [];
   discoveredPlugins = {
     _raw:        all,
-    established: all.filter(p => p.tier === 'established' && !taken.has(p.name)),
-    new:         all.filter(p => p.tier === 'new'         && !taken.has(p.name)),
+    established: all.filter(p => p.tier === 'established' && !exclude(p)),
+    new:         all.filter(p => p.tier === 'new'         && !exclude(p)),
   };
   const total = discoveredPlugins.established.length + discoveredPlugins.new.length;
   const tab   = document.getElementById('discovered-tab');
@@ -1338,6 +1368,8 @@ function render() {
       hasUpdate: false,
       updateInfo: null,
     }));
+    // Always group by marketplace in Added tab
+    list.sort((a, b) => (a.marketplace || '').localeCompare(b.marketplace || '') || a.name.localeCompare(b.name));
   } else {
     if (addedPlugins?.length && (activeFilter === 'all' || activeFilter === 'installed')) {
       const officialNames = new Set(list.map(p => p.name));
@@ -1387,10 +1419,16 @@ function render() {
 
   // For discovered tab: split list back into tiers to render divider
   const isDiscovered = activeFilter === 'discovered';
+  const isAddedTab   = activeFilter === 'added';
   // After keyword filtering, count how many in list are established tier
   const establishedCount = isDiscovered
     ? list.filter(p => p.tier === 'established').length
     : 0;
+  // Pre-compute per-marketplace plugin counts for Added tab dividers
+  const mktCounts = {};
+  if (isAddedTab) {
+    for (const p of list) mktCounts[p.marketplace || ''] = (mktCounts[p.marketplace || ''] || 0) + 1;
+  }
 
   grid.innerHTML = list.map((p, i) => {
     const count  = fmtCount(p.installs);
@@ -1444,10 +1482,19 @@ function render() {
 
     const fillStyle = isNewPlugin ? ' opacity:0.3;' : '';
 
-    // Section divider between established and new tiers
-    const divider = isDiscovered && i === establishedCount && establishedCount > 0 && list.length > establishedCount
-      ? `<div class="section-divider">New &amp; Unverified — 1–4 stars</div>`
-      : '';
+    // Section dividers
+    let divider = '';
+    if (isDiscovered && i === establishedCount && establishedCount > 0 && list.length > establishedCount) {
+      divider = `<div class="section-divider">New &amp; Unverified — 1–4 stars</div>`;
+    } else if (isAddedTab && (i === 0 || list[i - 1].marketplace !== p.marketplace)) {
+      const mkt     = p.marketplace || 'unknown';
+      const repo    = p.marketplaceRepo;
+      const cnt     = mktCounts[mkt] || 0;
+      const repoLink = repo
+        ? `<a href="https://github.com/${esc(repo)}" target="_blank" rel="noopener">${esc(repo)} ↗</a>`
+        : '';
+      divider = `<div class="section-divider-added">📦 ${esc(mkt)}${repoLink ? ' · ' + repoLink : ''}<span class="mkt-count">${cnt} plugin${cnt !== 1 ? 's' : ''}</span></div>`;
+    }
 
     const starInfo = (isEstablished || isNewPlugin) && p.stars
       ? ` <span style="opacity:0.45;font-size:0.75em">· ${p.stars}★</span>`
