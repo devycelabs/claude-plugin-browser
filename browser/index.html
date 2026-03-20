@@ -1589,10 +1589,11 @@ function render() {
       const mkt     = p.marketplace || 'unknown';
       const repo    = p.marketplaceRepo;
       const cnt     = mktCounts[mkt] || 0;
+      const divLabel = repo ? repo.split('/')[0] : mkt;
       const repoLink = repo
         ? `<a href="https://github.com/${esc(repo)}" target="_blank" rel="noopener">${esc(repo)} ↗</a>`
         : '';
-      divider = `<div class="section-divider-added">📦 ${esc(mkt)}${repoLink ? ' · ' + repoLink : ''}<span class="mkt-count">${cnt} plugin${cnt !== 1 ? 's' : ''}</span></div>`;
+      divider = `<div class="section-divider-added">📦 ${esc(divLabel)}${repoLink ? ' · ' + repoLink : ''}<span class="mkt-count">${cnt} plugin${cnt !== 1 ? 's' : ''}</span></div>`;
     }
 
     const starInfo = (isEstablished || isNewPlugin) && p.stars
