@@ -22,7 +22,7 @@ function env(name, fallback = '') {
   return (!v || /^\$\{[^}]+\}$/.test(v)) ? fallback : v;
 }
 
-const SERVER_VERSION = '1.5.3';
+const SERVER_VERSION = '1.5.4';
 const PORT           = parseInt(env('PLUGIN_BROWSER_PORT', '3747'), 10);
 const DEV_MODE     = env('PLUGIN_BROWSER_DEV', '') === '1';
 const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
@@ -45,7 +45,7 @@ function firstParagraph(md) {
   return md.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'))[0] || '';
 }
 
-function readPluginEntries(dir, defaultType) {
+function readPluginEntries(dir, defaultType, fallbackUrl = null) {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir).flatMap(name => {
     const pluginDir = path.join(dir, name);
@@ -66,10 +66,10 @@ function readPluginEntries(dir, defaultType) {
 
     const type = defaultType === 'anthropic' && name.endsWith('-lsp') ? 'lsp' : defaultType;
 
-    // Explicit URL from manifest, or construct GitHub link for known-hosted plugins
+    // Explicit URL from manifest, caller-supplied fallback, or official GitHub link
     const explicitUrl = manifest?.repository || manifest?.homepage || manifest?.author?.url || null;
     const repoSubdir  = defaultType === 'external' ? 'external_plugins' : 'plugins';
-    const url = explicitUrl || `https://github.com/anthropics/claude-plugins-official/tree/main/${repoSubdir}/${name}`;
+    const url = explicitUrl || fallbackUrl || `https://github.com/anthropics/claude-plugins-official/tree/main/${repoSubdir}/${name}`;
 
     return [{ name, desc, author, type, url }];
   });
@@ -151,9 +151,11 @@ function loadAddedMarketplaces() {
     if (mktName === MARKETPLACE) continue; // skip official
     const dir = info.installLocation;
     if (!dir) continue;
+    const mktUrl = info.source?.repo ? `https://github.com/${info.source.repo}` : null;
     const fromSubdirs = [
-      ...readPluginEntries(path.join(dir, 'plugins'),          'added'),
-      ...readPluginEntries(path.join(dir, 'external_plugins'), 'added'),
+      ...readPluginEntries(path.join(dir, 'plugins'),                  'added', mktUrl),
+      ...readPluginEntries(path.join(dir, 'external_plugins'),          'added', mktUrl),
+      ...readPluginEntries(path.join(dir, '.claude-plugin', 'plugins'), 'added', mktUrl), // dotai-style
     ];
     // Also try root-level single-plugin repos (no plugins/ subdir)
     const fromRoot = fromSubdirs.length === 0 ? readRootPlugin(dir, 'added') : [];
@@ -161,7 +163,6 @@ function loadAddedMarketplaces() {
       ...p,
       marketplace:     mktName,
       marketplaceRepo: info.source?.repo ?? null,
-      url: p.url || (info.source?.repo ? `https://github.com/${info.source.repo}` : null),
     }));
     plugins.push(...entries);
   }
