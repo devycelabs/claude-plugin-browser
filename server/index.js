@@ -22,7 +22,8 @@ function env(name, fallback = '') {
   return (!v || /^\$\{[^}]+\}$/.test(v)) ? fallback : v;
 }
 
-const PORT         = parseInt(env('PLUGIN_BROWSER_PORT', '3747'), 10);
+const SERVER_VERSION = '1.4.4';
+const PORT           = parseInt(env('PLUGIN_BROWSER_PORT', '3747'), 10);
 const DEV_MODE     = env('PLUGIN_BROWSER_DEV', '') === '1';
 const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
 const MARKETPLACE  = 'claude-plugins-official';
@@ -108,9 +109,18 @@ function loadData() {
     name, isOfficial: name === MARKETPLACE,
   }));
 
+  // Detect stale server: compare running version against what's installed
+  const pbKey = Object.keys(installedRaw?.plugins ?? {}).find(k => k.startsWith('plugin-browser@'));
+  const pbInstalls = pbKey ? (installedRaw.plugins[pbKey] ?? []) : [];
+  const pbLatest   = pbInstalls.length
+    ? pbInstalls.reduce((a, b) => new Date(a.lastUpdated) > new Date(b.lastUpdated) ? a : b)
+    : null;
+  const installedVersion = pbLatest?.version ?? null;
+  const needsRestart = installedVersion ? installedVersion !== SERVER_VERSION : false;
+
   return { marketplace: MARKETPLACE, lastUpdated, fetchedAt: new Date().toISOString(),
            pluginCount: plugins.length, plugins, installCounts, installed, installedDetails,
-           marketplaces };
+           marketplaces, serverVersion: SERVER_VERSION, installedVersion, needsRestart };
 }
 
 // ── Community registry ────────────────────────────────────────
@@ -211,7 +221,7 @@ function githubGet(apiPath) {
     const req = https.get({
       hostname: 'api.github.com',
       path: '/' + apiPath,
-      headers: { 'User-Agent': 'plugin-browser/1.4.4',
+      headers: { 'User-Agent': `plugin-browser/${SERVER_VERSION}`,
                  'Accept': 'application/vnd.github.v3+json' },
     }, res => {
       const chunks = [];
@@ -518,7 +528,7 @@ function handleMcp(msg) {
     return mcpSend({ jsonrpc: '2.0', id, result: {
       protocolVersion: '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: 'plugin-browser', version: '1.4.4' },
+      serverInfo: { name: 'plugin-browser', version: SERVER_VERSION },
     }});
   }
 

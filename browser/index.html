@@ -752,6 +752,70 @@ html { transition: background 0.25s, color 0.25s; }
 }
 .theme-btn:hover { color: var(--text); border-color: var(--muted); }
 
+/* ── Restart banner ──────────────────────────────────────── */
+.restart-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 44px;
+  background: rgba(232,147,10,0.07);
+  border-bottom: 1px solid rgba(232,147,10,0.22);
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  color: #E8930A;
+  letter-spacing: 0.02em;
+}
+.restart-banner strong { font-weight: 700; }
+
+/* ── Keyword sub-filters (Discovered tab) ────────────────── */
+#keyword-filter-row {
+  display: none;
+  padding: 8px 44px 10px;
+  gap: 6px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  background: rgba(56,189,248,0.03);
+  align-items: center;
+}
+#keyword-filter-row .kf-label {
+  font-family: var(--f-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted2);
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+.kw-chip {
+  font-family: var(--f-mono);
+  font-size: 0.62rem;
+  padding: 3px 9px;
+  border: 1px solid rgba(56,189,248,0.25);
+  border-radius: 10px;
+  color: rgba(56,189,248,0.65);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  user-select: none;
+  background: transparent;
+}
+.kw-chip:hover { color: #38bdf8; border-color: #38bdf8; }
+.kw-chip.active { background: #38bdf8; color: #051a2e; border-color: #38bdf8; }
+.kw-chip .kw-count { opacity: 0.55; font-size: 0.58rem; margin-left: 3px; }
+.kf-clear {
+  font-family: var(--f-mono);
+  font-size: 0.6rem;
+  color: var(--muted2);
+  cursor: pointer;
+  padding: 2px 6px;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  background: transparent;
+  transition: all 0.15s;
+  margin-left: 4px;
+}
+.kf-clear:hover { color: var(--text); border-color: var(--muted); }
+
 /* ── Page footer ─────────────────────────────────────────── */
 .page-footer {
   text-align: center;
@@ -878,6 +942,9 @@ html { transition: background 0.25s, color 0.25s; }
   <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark mode"></button>
 </div>
 
+<!-- Restart banner (hidden until server reports needsRestart) -->
+<div id="restart-banner" style="display:none"></div>
+
 <!-- Stats -->
 <div class="stats-row">
   <span id="stats"></span>
@@ -890,6 +957,7 @@ html { transition: background 0.25s, color 0.25s; }
 
 <!-- Grid -->
 <div id="promo-banner"></div>
+<div id="keyword-filter-row"></div>
 <div class="grid" id="grid"></div>
 
 <!-- Toast -->
@@ -991,6 +1059,7 @@ let liveMarketplaces    = null;
 let liveUpdates         = null;
 let communityPlugins    = null; // fetched from /api/community
 let discoveredPlugins   = null; // { established: [...], new: [...] } after fetch
+let activeKeywords      = new Set(); // active keyword sub-filters (Discovered tab)
 let lastSynced          = null;
 
 const COMMUNITY_MKT_REPO = 'devycelabs/claude-plugins-community';
@@ -1062,6 +1131,55 @@ function activePlugins()      { return livePlugins       ?? PLUGINS; }
 function activeInstallCounts(){ return liveInstallCounts ?? INSTALL_COUNTS; }
 function activeInstalled()    { return liveInstalled      ?? INSTALLED; }
 
+// ── Restart banner ───────────────────────────────────────────
+function updateRestartBanner(data) {
+  const el = document.getElementById('restart-banner');
+  if (!data?.needsRestart) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = `⟳ Server running <strong>v${esc(data.serverVersion)}</strong> — <strong>v${esc(data.installedVersion)}</strong> is installed. Start a new Claude Code session to apply updates.`;
+}
+
+// ── Keyword sub-filters ──────────────────────────────────────
+function buildKeywordCounts() {
+  const counts = {};
+  for (const p of (discoveredPlugins?._raw ?? [])) {
+    for (const kw of (p.keywords ?? [])) {
+      if (kw) counts[kw] = (counts[kw] || 0) + 1;
+    }
+  }
+  return Object.entries(counts)
+    .filter(([, count]) => count >= 4)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 24)
+    .map(([kw, count]) => ({ kw, count }));
+}
+
+function toggleKeyword(kw) {
+  if (activeKeywords.has(kw)) activeKeywords.delete(kw);
+  else activeKeywords.add(kw);
+  updateKeywordFilterRow();
+  render();
+}
+
+function updateKeywordFilterRow() {
+  const row = document.getElementById('keyword-filter-row');
+  if (activeFilter !== 'discovered' || !discoveredPlugins) {
+    row.style.display = 'none';
+    return;
+  }
+  const keywords = buildKeywordCounts();
+  if (!keywords.length) { row.style.display = 'none'; return; }
+
+  row.style.display = 'flex';
+  const clearBtn = activeKeywords.size
+    ? `<button class="kf-clear" onclick="activeKeywords.clear();updateKeywordFilterRow();render()">clear</button>`
+    : '';
+  row.innerHTML = `<span class="kf-label">Filter</span>` +
+    keywords.map(({ kw, count }) =>
+      `<button class="kw-chip${activeKeywords.has(kw) ? ' active' : ''}" onclick="toggleKeyword('${esc(kw)}')">${esc(kw)}<span class="kw-count">${count}</span></button>`
+    ).join('') + clearBtn;
+}
+
 // ── Status badge ─────────────────────────────────────────────
 function setStatus(state, label) {
   const badge = document.getElementById("status-badge");
@@ -1092,6 +1210,7 @@ async function syncFromServer() {
     const t = lastSynced ? new Date(lastSynced).toLocaleTimeString() : "now";
     setStatus("live", `live · ${t}`);
     updatePromo();
+    updateRestartBanner(data);
     updateUnmonitoredTab();
     render();
     // Kick off background checks — non-blocking
@@ -1186,6 +1305,7 @@ async function fetchDiscoveredPlugins() {
     // Store raw then dedup
     discoveredPlugins = { _raw: raw, established: [], new: [] };
     applyDiscoveredDedup();
+    updateKeywordFilterRow();
     render();
   } catch { /* best-effort */ }
 }
@@ -1217,6 +1337,8 @@ function setFilter(f, btn) {
   // Show "Recently updated" sort only on Discovered tab
   const recentOpt = document.getElementById('sort-recently-updated');
   if (recentOpt) recentOpt.style.display = f === 'discovered' ? '' : 'none';
+  if (f !== 'discovered') { activeKeywords.clear(); }
+  updateKeywordFilterRow();
   render();
 }
 
@@ -1242,8 +1364,14 @@ function render() {
   const unmonitored = getUnmonitoredPlugins();
 
   if (activeFilter === 'discovered') {
-    const established = discoveredPlugins?.established ?? [];
-    const newPlugins  = discoveredPlugins?.new ?? [];
+    let established = discoveredPlugins?.established ?? [];
+    let newPlugins  = discoveredPlugins?.new ?? [];
+    // Apply keyword sub-filters
+    if (activeKeywords.size) {
+      const kf = kw => (kw.keywords ?? []).some(k => activeKeywords.has(k));
+      established = established.filter(kf);
+      newPlugins  = newPlugins.filter(kf);
+    }
     list = [
       ...established,
       ...newPlugins,
@@ -1313,7 +1441,10 @@ function render() {
 
   // For discovered tab: split list back into tiers to render divider
   const isDiscovered = activeFilter === 'discovered';
-  const establishedCount = isDiscovered ? (discoveredPlugins?.established?.length ?? 0) : 0;
+  // After keyword filtering, count how many in list are established tier
+  const establishedCount = isDiscovered
+    ? list.filter(p => p.tier === 'established').length
+    : 0;
 
   grid.innerHTML = list.map((p, i) => {
     const count  = fmtCount(p.installs);
