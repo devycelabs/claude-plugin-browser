@@ -1283,9 +1283,10 @@ function applyDiscoveredDedup() {
     ...(addedPlugins ?? []).map(p => p.name),
   ]);
   // Also exclude by repo — catches cases where plugin name differs but repo matches an added marketplace
-  const takenRepos = new Set(
-    (addedPlugins ?? []).map(p => p.marketplaceRepo).filter(Boolean)
-  );
+  const takenRepos = new Set([
+    'anthropics/claude-plugins-official',   // always exclude official repo
+    ...(addedPlugins ?? []).map(p => p.marketplaceRepo).filter(Boolean),
+  ]);
   const exclude = p => takenNames.has(p.name) || (p.repo && takenRepos.has(p.repo));
   const all = discoveredPlugins._raw ?? [];
   discoveredPlugins = {
@@ -1607,7 +1608,7 @@ function render() {
   <div class="card-footer">
     ${(()=>{
       const isDisc = isEstablished || isNewPlugin;
-      const barPct = isDisc ? Math.min((p.stars || 0) / 100 * 100, 100) : pct;
+      const barPct = isDisc ? Math.min((p.stars || 0) / 500 * 100, 100) : pct;
       const popTxt = isDisc ? (p.stars ? `★ ${p.stars}` : '—') : (count ? count + ' installs' : '—');
       const popCls = (isDisc ? !!p.stars : !!count) ? 'has-data' : '';
       return `<div class="pop-row">
