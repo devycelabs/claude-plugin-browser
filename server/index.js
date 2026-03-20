@@ -211,7 +211,7 @@ function githubGet(apiPath) {
     const req = https.get({
       hostname: 'api.github.com',
       path: '/' + apiPath,
-      headers: { 'User-Agent': 'plugin-browser/1.4.0',
+      headers: { 'User-Agent': 'plugin-browser/1.4.1',
                  'Accept': 'application/vnd.github.v3+json' },
     }, res => {
       const chunks = [];
@@ -496,7 +496,7 @@ function handleMcp(msg) {
     return mcpSend({ jsonrpc: '2.0', id, result: {
       protocolVersion: '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: 'plugin-browser', version: '1.4.0' },
+      serverInfo: { name: 'plugin-browser', version: '1.4.1' },
     }});
   }
 

@@ -613,6 +613,27 @@ select:focus { border-color: var(--muted); }
   user-select: none;
 }
 .install-cmd.installed-cmd .prompt { color: var(--c-installed); }
+.install-cmd-multi {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  white-space: normal;
+}
+.install-cmd-multi .cmd-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.install-cmd-multi .cmd-line + .cmd-line {
+  border-top: 1px solid var(--border);
+  padding-top: 3px;
+}
+.install-cmd-multi .prompt { color: var(--muted2); font-weight: 600; flex-shrink: 0; user-select: none; }
+.install-cmd-multi .prompt.p-add { color: #38bdf8; }
+.install-cmd-multi .prompt.p-install { color: var(--c-installed); }
 
 /* ── Empty state ──────────────────────────────────────────── */
 .empty {
@@ -1297,7 +1318,6 @@ function render() {
   grid.innerHTML = list.map((p, i) => {
     const count  = fmtCount(p.installs);
     const pct    = popPct(p.installs);
-    const cmd    = `/plugin install ${p.name}`;
     const delay  = Math.min(i * 28, 500);
 
     const isCommunity   = p.type === 'community';
@@ -1377,9 +1397,22 @@ function render() {
       <div class="pop-bar-wrap"><div class="pop-bar-fill ${fillClass}" style="width:${pct}%;${fillStyle}"></div></div>
       <div class="pop-count ${count ? 'has-data' : ''}">${count ? count + ' installs' : '—'}</div>
     </div>
-    <div class="install-cmd${p.installed ? ' installed-cmd' : ''}" onclick="copyCmd('${esc(cmd)}')" title="Click to copy">
-      <span class="prompt">${p.installed ? '✓' : '$'}</span>${esc(cmd)}
-    </div>
+    ${(()=>{
+      const installCmd = `/plugin install ${p.name}`;
+      if (p.installed) {
+        return `<div class="install-cmd installed-cmd" onclick="copyCmd('${esc(installCmd)}')" title="Click to copy"><span class="prompt">✓</span>${esc(installCmd)}</div>`;
+      }
+      const mktRepo = isEstablished || isNewPlugin ? p.repo : isCommunity ? p.marketplace : null;
+      if (mktRepo && !liveMarketplaces?.some(m => m.name === mktRepo.replace('/', '-'))) {
+        const addCmd = `/plugin marketplace add ${mktRepo}`;
+        const both   = `${addCmd}\n${installCmd}`;
+        return `<div class="install-cmd install-cmd-multi" onclick="copyCmd('${esc(both)}')" title="Click to copy both commands">
+          <div class="cmd-line"><span class="prompt p-add">$</span>${esc(addCmd)}</div>
+          <div class="cmd-line"><span class="prompt p-install">$</span>${esc(installCmd)}</div>
+        </div>`;
+      }
+      return `<div class="install-cmd" onclick="copyCmd('${esc(installCmd)}')" title="Click to copy"><span class="prompt">$</span>${esc(installCmd)}</div>`;
+    })()}
   </div>
   ${securityStrip}
 </div>`;
