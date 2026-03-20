@@ -237,8 +237,8 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
 .filter-btn.active.f-installed { background: var(--c-installed);  border-color: var(--c-installed);  color: #000; }
 .filter-btn.active.f-updates    { background: #E8930A;             border-color: #E8930A;             color: #1C0A0A; }
 .filter-btn.f-updates           { color: #E8930A; border-color: rgba(232,147,10,0.35); }
-.filter-btn.active.f-community    { background: #a78bfa;             border-color: #a78bfa;             color: #1a0050; }
-.filter-btn.f-community           { color: #a78bfa; border-color: rgba(167,139,250,0.35); }
+.filter-btn.active.f-added        { background: #a78bfa;             border-color: #a78bfa;             color: #1a0050; }
+.filter-btn.f-added               { color: #a78bfa; border-color: rgba(167,139,250,0.35); }
 .filter-btn.active.f-unmonitored  { background: var(--c-gold);        border-color: var(--c-gold);       color: #1a1400; }
 .filter-btn.f-unmonitored         { color: var(--c-gold); border-color: rgba(224,192,74,0.35); }
 .filter-btn.active.f-discovered   { background: #38bdf8; border-color: #38bdf8; color: #051a2e; }
@@ -254,14 +254,14 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
   border: 1px solid var(--border2); border-radius: 3px;
   padding: 1px 5px; position: relative; top: -1px; letter-spacing: 0.02em;
 }
-.community-badge {
+.added-badge {
   display: inline-block;
   font-size: 0.6rem; font-family: var(--f-mono); font-weight: 600;
   color: #a78bfa; background: rgba(167,139,250,0.1);
   border: 1px solid rgba(167,139,250,0.25); border-radius: 3px;
   padding: 1px 5px; letter-spacing: 0.02em;
 }
-.stripe-community   { background: #a78bfa; }
+.stripe-added       { background: #a78bfa; }
 .stripe-unmonitored { background: var(--c-gold); }
 .stripe-discovered  { background: #38bdf8; }
 .stripe-new-plugin  { background: rgba(56,189,248,0.35); }
@@ -453,8 +453,21 @@ select:focus { border-color: var(--muted); }
 }
 .card-repo:hover { color: var(--text); border-color: var(--muted2); }
 
-/* Community security strip */
-.community-security-strip {
+/* Added / unmonitored security strips */
+.added-security-strip {
+  background: rgba(167,139,250,0.06);
+  border-top: 1px solid rgba(167,139,250,0.18);
+  padding: 6px 14px;
+  font-family: var(--f-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.02em;
+  color: #a78bfa;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.added-security-strip::before { content: '📦'; font-size: 0.65rem; }
+.unmonitored-security-strip {
   background: rgba(232,147,10,0.07);
   border-top: 1px solid rgba(232,147,10,0.18);
   padding: 6px 14px;
@@ -466,7 +479,7 @@ select:focus { border-color: var(--muted); }
   align-items: center;
   gap: 6px;
 }
-.community-security-strip::before { content: '🔍'; font-size: 0.65rem; }
+.unmonitored-security-strip::before { content: '🔍'; font-size: 0.65rem; }
 
 /* Type label */
 .card-type {
@@ -481,6 +494,7 @@ select:focus { border-color: var(--muted); }
 .type-external   { color: var(--c-external); }
 .type-lsp        { color: var(--c-lsp); }
 .type-discovered { color: #38bdf8; }
+.type-added      { color: #a78bfa; }
 
 /* Plugin name */
 .card-name {
@@ -836,49 +850,6 @@ html { transition: background 0.25s, color 0.25s; }
 .page-footer a:hover { opacity: 1; }
 .page-footer .sep { margin: 0 8px; opacity: 0.4; }
 
-/* ── Community promo banner ───────────────────────────────── */
-.promo-card {
-  background: var(--surface);
-  border-top: 2px solid #a78bfa;
-  border-bottom: 1px solid var(--border);
-  padding: 14px 24px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-.promo-card-title {
-  font-family: var(--f-mono);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #a78bfa;
-  margin-bottom: 4px;
-}
-.promo-card-desc {
-  font-family: var(--f-body);
-  font-size: 0.8rem;
-  color: var(--muted);
-  flex: 1;
-  min-width: 200px;
-  line-height: 1.5;
-}
-.promo-cmd {
-  font-family: var(--f-mono);
-  font-size: 0.7rem;
-  color: var(--muted2);
-  background: var(--bg);
-  border: 1px solid var(--border2);
-  border-radius: 3px;
-  padding: 6px 12px;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.promo-cmd:hover { border-color: #a78bfa; color: #a78bfa; }
-.promo-cmd .prompt { color: #a78bfa; margin-right: 4px; }
 </style>
 </head>
 <body>
@@ -895,8 +866,6 @@ html { transition: background 0.25s, color 0.25s; }
   </div>
   <div class="header-meta">
     <span class="header-tag">official · local cache</span>
-    <div class="header-dot" id="community-dot" style="display:none"></div>
-    <span class="header-tag" id="community-header-tag" style="display:none">community · live</span>
   </div>
 </header>
 
@@ -913,7 +882,7 @@ html { transition: background 0.25s, color 0.25s; }
     <button class="filter-btn f-lsp"               onclick="setFilter('lsp',this)">LSP</button>
     <button class="filter-btn f-installed"         onclick="setFilter('installed',this)">Installed</button>
     <button class="filter-btn f-updates" id="updates-tab" onclick="setFilter('updates',this)" style="display:none">Updates <span id="updates-count"></span></button>
-    <button class="filter-btn f-community" id="community-tab" onclick="setFilter('community',this)" style="display:none">Community <span id="community-count"></span></button>
+    <button class="filter-btn f-added" id="added-tab" onclick="setFilter('added',this)" style="display:none">Added <span id="added-count"></span></button>
     <button class="filter-btn f-unmonitored" id="unmonitored-tab" onclick="setFilter('unmonitored',this)" style="display:none">Unmonitored <span id="unmonitored-count"></span></button>
     <button class="filter-btn f-discovered" id="discovered-tab" onclick="setFilter('discovered',this)" style="display:none">Discovered <span id="discovered-count"></span></button>
   </div>
@@ -956,7 +925,6 @@ html { transition: background 0.25s, color 0.25s; }
 </div>
 
 <!-- Grid -->
-<div id="promo-banner"></div>
 <div id="keyword-filter-row"></div>
 <div class="grid" id="grid"></div>
 
@@ -1057,25 +1025,25 @@ let liveInstalled       = null;
 let liveInstalledDetails= null;
 let liveMarketplaces    = null;
 let liveUpdates         = null;
-let communityPlugins    = null; // fetched from /api/community
+let addedPlugins        = null; // fetched from /api/added (user-added marketplace plugins)
 let discoveredPlugins   = null; // { established: [...], new: [...] } after fetch
 let activeKeywords      = new Set(); // active keyword sub-filters (Discovered tab)
 let lastSynced          = null;
 
-const COMMUNITY_MKT_REPO = 'devycelabs/claude-plugins-community';
-const COMMUNITY_MKT_NAME = 'devycelabs-claude-plugins-community';
-
-// Tracked marketplaces — plugins from these are shown in their own tabs
-const TRACKED_MKTS = new Set(['claude-plugins-official', COMMUNITY_MKT_NAME]);
+const OFFICIAL_MKT = 'claude-plugins-official';
 
 function getUnmonitoredPlugins() {
   if (!liveInstalledDetails) return [];
   const trackedNames = new Set([
     ...activePlugins().map(p => p.name),
-    ...(communityPlugins ?? []).map(p => p.name),
+    ...(addedPlugins ?? []).map(p => p.name),
   ]);
+  // Build set of all tracked marketplace names dynamically
+  const trackedMktNames = new Set([OFFICIAL_MKT]);
+  for (const m of (liveMarketplaces ?? [])) trackedMktNames.add(m.name);
+
   return Object.entries(liveInstalledDetails)
-    .filter(([name, d]) => !trackedNames.has(name) && !TRACKED_MKTS.has(d.marketplace))
+    .filter(([name, d]) => !trackedNames.has(name) && !trackedMktNames.has(d.marketplace))
     .map(([name, d]) => ({
       name,
       displayName: name,
@@ -1094,10 +1062,6 @@ function getUnmonitoredPlugins() {
     }));
 }
 
-function communityIsAdded() {
-  return liveMarketplaces?.some(m => m.name === COMMUNITY_MKT_NAME) ?? false;
-}
-
 function updateUnmonitoredTab() {
   const plugins = getUnmonitoredPlugins();
   const tab = document.getElementById('unmonitored-tab');
@@ -1110,22 +1074,6 @@ function updateUnmonitoredTab() {
   }
 }
 
-function updatePromo() {
-  const banner = document.getElementById('promo-banner');
-  if (liveMarketplaces === null || communityIsAdded()) { banner.innerHTML = ''; return; }
-  const addCmd = `/plugin marketplace add ${COMMUNITY_MKT_REPO}`;
-  banner.innerHTML = `
-  <div class="promo-card">
-    <div class="promo-card-desc">
-      <div class="promo-card-title">Community Marketplace available</div>
-      Browse community plugins here, but add the Community Marketplace once to install them directly.
-      All plugins remain in their own repos — review before installing.
-    </div>
-    <div class="promo-cmd" onclick="copyCmd('${esc(addCmd)}')" title="Click to copy">
-      <span class="prompt">$</span>${esc(addCmd)}
-    </div>
-  </div>`;
-}
 
 function activePlugins()      { return livePlugins       ?? PLUGINS; }
 function activeInstallCounts(){ return liveInstallCounts ?? INSTALL_COUNTS; }
@@ -1209,13 +1157,12 @@ async function syncFromServer() {
 
     const t = lastSynced ? new Date(lastSynced).toLocaleTimeString() : "now";
     setStatus("live", `live · ${t}`);
-    updatePromo();
     updateRestartBanner(data);
     updateUnmonitoredTab();
     render();
     // Kick off background checks — non-blocking
     fetchUpdateStatus();
-    fetchCommunityPlugins();
+    fetchAddedPlugins();
     fetchDiscoveredPlugins();
   } catch {
     setStatus("offline", "offline");
@@ -1248,32 +1195,31 @@ async function fetchUpdateStatus() {
   } catch { /* update check is best-effort */ }
 }
 
-async function fetchCommunityPlugins() {
-  const communityUrl = API.replace('/api/plugins', '/api/community');
+async function fetchAddedPlugins() {
+  const addedUrl = API.replace('/api/plugins', '/api/added');
   try {
-    const resp = await fetch(communityUrl, { signal: AbortSignal.timeout(15_000) });
+    const resp = await fetch(addedUrl, { signal: AbortSignal.timeout(5_000) });
     if (!resp.ok) return;
     const data = await resp.json();
-    communityPlugins = data.plugins ?? [];
-    if (communityPlugins.length > 0) {
-      document.getElementById('community-count').textContent = `(${communityPlugins.length})`;
-      document.getElementById('community-tab').style.display = '';
-      document.getElementById('community-dot').style.display = '';
-      document.getElementById('community-header-tag').style.display = '';
+    addedPlugins = data.plugins ?? [];
+    if (addedPlugins.length > 0) {
+      document.getElementById('added-count').textContent = `(${addedPlugins.length})`;
+      document.getElementById('added-tab').style.display = '';
+    } else {
+      document.getElementById('added-tab').style.display = 'none';
     }
-    updatePromo();
     updateUnmonitoredTab();
-    // Race condition fix: re-dedup discovered plugins against newly loaded community names
+    // Race condition fix: re-dedup discovered plugins against newly loaded added names
     if (discoveredPlugins) applyDiscoveredDedup();
     render();
-  } catch { /* community fetch is best-effort */ }
+  } catch { /* added fetch is best-effort */ }
 }
 
 function applyDiscoveredDedup() {
   if (!discoveredPlugins) return;
   const taken = new Set([
     ...activePlugins().map(p => p.name),
-    ...(communityPlugins ?? []).map(p => p.name),
+    ...(addedPlugins ?? []).map(p => p.name),
   ]);
   const all = discoveredPlugins._raw ?? [];
   discoveredPlugins = {
@@ -1384,8 +1330,8 @@ function render() {
     }));
   } else if (activeFilter === 'unmonitored') {
     list = unmonitored;
-  } else if (activeFilter === 'community') {
-    list = (communityPlugins ?? []).map(p => ({
+  } else if (activeFilter === 'added') {
+    list = (addedPlugins ?? []).map(p => ({
       ...p,
       installs:  0,
       installed: activeInstalled().includes(p.name),
@@ -1393,9 +1339,9 @@ function render() {
       updateInfo: null,
     }));
   } else {
-    if (communityPlugins?.length && (activeFilter === 'all' || activeFilter === 'installed')) {
+    if (addedPlugins?.length && (activeFilter === 'all' || activeFilter === 'installed')) {
       const officialNames = new Set(list.map(p => p.name));
-      const extras = communityPlugins
+      const extras = addedPlugins
         .filter(p => !officialNames.has(p.name))
         .map(p => ({ ...p, installs: 0, installed: activeInstalled().includes(p.name),
                      hasUpdate: false, updateInfo: null }));
@@ -1421,12 +1367,12 @@ function render() {
   else                    list.sort((a,b) => a.name.localeCompare(b.name));
 
   // Stats — total pool varies by active tab
-  const communityExtras = communityPlugins?.filter(p => !new Set(activePlugins().map(q => q.name)).has(p.name)).length ?? 0;
+  const addedExtras = addedPlugins?.filter(p => !new Set(activePlugins().map(q => q.name)).has(p.name)).length ?? 0;
   const discoveredTotal = (discoveredPlugins?.established?.length ?? 0) + (discoveredPlugins?.new?.length ?? 0);
-  const totalPool = activeFilter === 'community'   ? (communityPlugins?.length ?? 0)
+  const totalPool = activeFilter === 'added'       ? (addedPlugins?.length ?? 0)
                   : activeFilter === 'unmonitored' ? unmonitored.length
                   : activeFilter === 'discovered'  ? discoveredTotal
-                  : activePlugins().length + (activeFilter === 'all' || activeFilter === 'installed' ? communityExtras : 0);
+                  : activePlugins().length + (activeFilter === 'all' || activeFilter === 'installed' ? addedExtras : 0);
   document.getElementById("stats").innerHTML =
     `<em>${list.length}</em> of <em>${totalPool}</em> plugins`;
   document.getElementById("header-count").textContent = list.length;
@@ -1451,7 +1397,7 @@ function render() {
     const pct    = popPct(p.installs);
     const delay  = Math.min(i * 28, 500);
 
-    const isCommunity   = p.type === 'community';
+    const isAdded       = p.type === 'added';
     const isUnmonitored = p.type === 'unmonitored';
     const isEstablished = isDiscovered && i < establishedCount;
     const isNewPlugin   = isDiscovered && i >= establishedCount;
@@ -1460,7 +1406,7 @@ function render() {
                       : isNewPlugin   ? 'stripe-new-plugin'
                       : `stripe-${esc(p.type)}`;
 
-    const typeLabel = isCommunity ? 'community'
+    const typeLabel = isAdded ? (p.marketplace || 'added')
                     : p.type === 'external' ? 'MCP' : p.type?.toUpperCase() ?? '';
 
     // safe URL: allow http/https only
@@ -1470,23 +1416,25 @@ function render() {
       ? `<div class="discovered-security-strip">Found via GitHub Code Search — not in any managed registry.</div>`
       : isNewPlugin
       ? `<div class="new-plugin-security-strip">Low-star repo — inspect source carefully before installing.</div>`
-      : isCommunity
-      ? `<div class="community-security-strip">Review source ${p.installed ? 'before updating' : 'before installing'}</div>`
+      : isAdded
+      ? `<div class="added-security-strip">From ${esc(p.marketplace || 'added marketplace')} — review source ${p.installed ? 'before updating' : 'before installing'}</div>`
       : isUnmonitored
-      ? `<div class="community-security-strip">Not tracked by any monitored registry — review before updating</div>`
+      ? `<div class="unmonitored-security-strip">Not tracked by any monitored registry — review before updating</div>`
       : '';
 
     const typeBadge = isEstablished
       ? '<span class="discovered-badge">discovered</span>'
       : isNewPlugin
       ? '<span class="new-plugin-badge">unverified</span>'
-      : isCommunity
-      ? '<span class="community-badge">community</span>'
+      : isAdded
+      ? `<span class="added-badge">${esc(p.marketplace || 'added')}</span>`
       : isUnmonitored
       ? 'unmonitored'
       : esc(typeLabel);
 
-    const typeClass = isEstablished || isNewPlugin ? 'type-discovered' : `type-${esc(p.type)}`;
+    const typeClass = isEstablished || isNewPlugin ? 'type-discovered'
+                    : isAdded ? 'type-added'
+                    : `type-${esc(p.type)}`;
 
     const fillClass = isEstablished
       ? 'fill-discovered'
@@ -1533,7 +1481,8 @@ function render() {
       if (p.installed) {
         return `<div class="install-cmd installed-cmd" onclick="copyCmd('${esc(installCmd)}')" title="Click to copy"><span class="prompt">✓</span>${esc(installCmd)}</div>`;
       }
-      const mktRepo = isEstablished || isNewPlugin ? p.repo : isCommunity ? p.marketplace : null;
+      // Added plugins: marketplace already added — no two-step needed
+      const mktRepo = isEstablished || isNewPlugin ? p.repo : null;
       const mktAdded = mktRepo && liveMarketplaces?.some(m => {
         const slug = mktRepo.replace('/', '-');
         return m.name === slug || m.name === mktRepo.split('/')[1] || slug.endsWith('-' + m.name) || slug.startsWith(m.name + '-');

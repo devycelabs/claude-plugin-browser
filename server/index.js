@@ -22,7 +22,7 @@ function env(name, fallback = '') {
   return (!v || /^\$\{[^}]+\}$/.test(v)) ? fallback : v;
 }
 
-const SERVER_VERSION = '1.4.5';
+const SERVER_VERSION = '1.5.0';
 const PORT           = parseInt(env('PLUGIN_BROWSER_PORT', '3747'), 10);
 const DEV_MODE     = env('PLUGIN_BROWSER_DEV', '') === '1';
 const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
@@ -123,58 +123,34 @@ function loadData() {
            marketplaces, serverVersion: SERVER_VERSION, installedVersion, needsRestart };
 }
 
-// ── Community registry ────────────────────────────────────────
+// ── Added marketplaces ────────────────────────────────────────
 
 const https = require('https');
-
-const COMMUNITY_REGISTRY = 'devycelabs/claude-plugins-community';
-const COMMUNITY_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
-let _communityCache = null;
 
 const DISCOVERED_CACHE_FILE = path.join(PLUGIN_DATA, 'discovered-plugins.json');
 const DISCOVERED_CACHE_TTL  = 7 * 24 * 60 * 60 * 1000; // 7 days
 const DISCOVERED_DATA_URL   =
   'repos/devycelabs/claude-plugin-browser-data/contents/discovered.json';
 
-async function fetchCommunityRegistry() {
-  if (!DEV_MODE && _communityCache && (Date.now() - _communityCache.fetchedAt) < COMMUNITY_CACHE_TTL) {
-    return { ..._communityCache.data, cached: true };
+function loadAddedMarketplaces() {
+  const known = safeReadJson(path.join(PLUGINS_BASE, 'known_marketplaces.json'));
+  const plugins = [];
+  for (const [mktName, info] of Object.entries(known ?? {})) {
+    if (mktName === MARKETPLACE) continue; // skip official
+    const dir = info.installLocation;
+    if (!dir) continue;
+    const entries = [
+      ...readPluginEntries(path.join(dir, 'plugins'),          'added'),
+      ...readPluginEntries(path.join(dir, 'external_plugins'), 'added'),
+    ].map(p => ({
+      ...p,
+      marketplace:     mktName,
+      marketplaceRepo: info.source?.repo ?? null,
+      url: p.url || (info.source?.repo ? `https://github.com/${info.source.repo}` : null),
+    }));
+    plugins.push(...entries);
   }
-
-  const raw = await githubGetRaw(
-    `repos/${COMMUNITY_REGISTRY}/contents/registry.json`
-  );
-  if (!raw) return { plugins: [], error: 'registry unavailable' };
-
-  let registry;
-  try {
-    const content = Buffer.from(raw.content, 'base64').toString('utf8');
-    registry = JSON.parse(content);
-  } catch {
-    return { plugins: [], error: 'registry parse error' };
-  }
-
-  const today = new Date();
-  const plugins = (registry.plugins ?? []).map(p => ({
-    name:        p.name,
-    displayName: p.displayName || p.name,
-    desc:        p.description || '',
-    author:      p.author,
-    repo:        p.repo,
-    marketplace: p.marketplace,
-    tags:        p.tags || [],
-    addedAt:     p.addedAt,
-    lastVerified:p.lastVerified,
-    status:      p.status || 'active',
-    archived:    p.status === 'archived',
-    pendingVerification: p.status === 'active' && new Date(p.verificationDue) < today,
-    type:        'community',
-    url:         `https://github.com/${p.repo}`,
-  }));
-
-  const data = { fetchedAt: new Date().toISOString(), pluginCount: plugins.length, plugins };
-  _communityCache = { data, fetchedAt: Date.now() };
-  return data;
+  return { plugins, fetchedAt: new Date().toISOString(), pluginCount: plugins.length };
 }
 
 // ── Discovered registry ───────────────────────────────────────
@@ -385,16 +361,15 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
 
-  if (url.pathname === '/api/community') {
-    fetchCommunityRegistry()
-      .then(data => {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(data));
-      })
-      .catch(err => {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message, plugins: [] }));
-      });
+  if (url.pathname === '/api/added') {
+    try {
+      const data = loadAddedMarketplaces();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(data));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message, plugins: [] }));
+    }
     return;
   }
 
