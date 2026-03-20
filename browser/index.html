@@ -860,6 +860,50 @@ html { transition: background 0.25s, color 0.25s; }
 }
 .kf-clear:hover { color: var(--text); border-color: var(--muted); }
 
+/* ── Ignore ───────────────────────────────────────────────── */
+.ignore-link {
+  font-family: var(--f-mono);
+  font-size: 0.6rem;
+  color: transparent;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  margin-top: 5px;
+  display: block;
+  transition: color 0.15s;
+  user-select: none;
+}
+.card:hover .ignore-link { color: #3a3840; }
+.ignore-link:hover { color: #66636e !important; }
+.unignore-link {
+  font-family: var(--f-mono);
+  font-size: 0.6rem;
+  color: #4a4855;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  margin-top: 5px;
+  display: block;
+  transition: color 0.15s;
+  user-select: none;
+}
+.unignore-link:hover { color: #999; }
+.card.card-ignored { opacity: 0.28; filter: grayscale(0.3); }
+.card.card-ignored:hover { opacity: 0.45; }
+.ignored-section-row {
+  grid-column: 1/-1;
+  padding: 5px 20px;
+  font-family: var(--f-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2a2830;
+  border-top: 1px solid #16151a;
+  border-bottom: 1px solid #16151a;
+  background: #0c0c0d;
+}
+.filter-btn.f-ignored { color: #3a3840; border-color: #222127; }
+.filter-btn.f-ignored:hover { color: #666; border-color: #3a3840; }
+.filter-btn.f-ignored.hide-active { color: #555; border-color: #2e2c35; background: #14131a; }
+
 /* ── Page footer ─────────────────────────────────────────── */
 .page-footer {
   text-align: center;
@@ -912,6 +956,7 @@ html { transition: background 0.25s, color 0.25s; }
     <button class="filter-btn f-added" id="added-tab" onclick="setFilter('added',this)" style="display:none">Added <span id="added-count"></span></button>
     <button class="filter-btn f-unmonitored" id="unmonitored-tab" onclick="setFilter('unmonitored',this)" style="display:none">Unmonitored <span id="unmonitored-count"></span></button>
     <button class="filter-btn f-discovered" id="discovered-tab" onclick="setFilter('discovered',this)" style="display:none">Discovered <span id="discovered-count"></span></button>
+    <button class="filter-btn f-ignored" id="ignored-chip" onclick="toggleHideIgnored()" style="display:none">— ignored <span id="ignored-count"></span></button>
   </div>
   <div class="sort-wrap">
     <span>Sort</span>
@@ -1055,6 +1100,8 @@ let liveUpdates         = null;
 let addedPlugins        = null; // fetched from /api/added (user-added marketplace plugins)
 let discoveredPlugins   = null; // { established: [...], new: [...] } after fetch
 let activeKeywords      = new Set(); // active keyword sub-filters (Discovered tab)
+let ignoredPlugins      = new Set(JSON.parse(localStorage.getItem('pluginBrowserIgnored') || '[]'));
+let hideIgnored         = false;
 let lastSynced          = null;
 
 const OFFICIAL_MKT = 'claude-plugins-official';
@@ -1296,6 +1343,38 @@ async function fetchDiscoveredPlugins() {
   } catch { /* best-effort */ }
 }
 
+// ── Ignore ───────────────────────────────────────────────────
+function ignorePlugin(name) {
+  ignoredPlugins.add(name);
+  localStorage.setItem('pluginBrowserIgnored', JSON.stringify([...ignoredPlugins]));
+  updateIgnoredChip();
+  render();
+}
+function unignorePlugin(name) {
+  ignoredPlugins.delete(name);
+  localStorage.setItem('pluginBrowserIgnored', JSON.stringify([...ignoredPlugins]));
+  updateIgnoredChip();
+  render();
+}
+function updateIgnoredChip() {
+  const chip = document.getElementById('ignored-chip');
+  const cnt  = document.getElementById('ignored-count');
+  if (!chip) return;
+  if (ignoredPlugins.size > 0) {
+    chip.style.display = '';
+    cnt.textContent = `(${ignoredPlugins.size})`;
+    chip.classList.toggle('hide-active', hideIgnored);
+  } else {
+    chip.style.display = 'none';
+    hideIgnored = false;
+  }
+}
+function toggleHideIgnored() {
+  hideIgnored = !hideIgnored;
+  updateIgnoredChip();
+  render();
+}
+
 // ── State ────────────────────────────────────────────────────
 let activeFilter = "all";
 
@@ -1412,6 +1491,10 @@ function render() {
   });
   else                    list.sort((a,b) => a.name.localeCompare(b.name));
 
+  // Separate ignored plugins (dimmed at bottom, or hidden entirely when hideIgnored)
+  const ignoredList = hideIgnored ? [] : list.filter(p => ignoredPlugins.has(p.name));
+  list = list.filter(p => !ignoredPlugins.has(p.name));
+
   // Stats — total pool varies by active tab
   const addedExtras = addedPlugins?.filter(p => !new Set(activePlugins().map(q => q.name)).has(p.name)).length ?? 0;
   const discoveredTotal = (discoveredPlugins?.established?.length ?? 0) + (discoveredPlugins?.new?.length ?? 0);
@@ -1419,14 +1502,15 @@ function render() {
                   : activeFilter === 'unmonitored' ? unmonitored.length
                   : activeFilter === 'discovered'  ? discoveredTotal
                   : activePlugins().length + (activeFilter === 'all' || activeFilter === 'installed' ? addedExtras : 0);
+  const visibleCount = list.length + ignoredList.length;
   document.getElementById("stats").innerHTML =
-    `<em>${list.length}</em> of <em>${totalPool}</em> plugins`;
-  document.getElementById("header-count").textContent = list.length;
+    `<em>${visibleCount}</em> of <em>${totalPool}</em> plugins`;
+  document.getElementById("header-count").textContent = visibleCount;
 
   // Grid
   const grid = document.getElementById("grid");
 
-  if (!list.length) {
+  if (!list.length && !ignoredList.length) {
     grid.innerHTML = `<div class="empty"><div class="empty-title">Nothing found</div><p>Try a different search term or filter.</p></div>`;
     return;
   }
@@ -1458,7 +1542,8 @@ function render() {
                       : isNewPlugin   ? 'stripe-new-plugin'
                       : `stripe-${esc(p.type)}`;
 
-    const typeLabel = isAdded ? (p.marketplace || 'added')
+    const mktLabel  = p.marketplaceRepo ? p.marketplaceRepo.split('/')[0] : (p.marketplace || 'added');
+    const typeLabel = isAdded ? mktLabel
                     : p.type === 'external' ? 'MCP' : p.type?.toUpperCase() ?? '';
 
     // safe URL: allow http/https only
@@ -1469,7 +1554,7 @@ function render() {
       : isNewPlugin
       ? `<div class="new-plugin-security-strip">Low-star repo — inspect source carefully before installing.</div>`
       : isAdded
-      ? `<div class="added-security-strip">From ${esc(p.marketplace || 'added marketplace')} — review source ${p.installed ? 'before updating' : 'before installing'}</div>`
+      ? `<div class="added-security-strip">From ${esc(mktLabel)} — review source ${p.installed ? 'before updating' : 'before installing'}</div>`
       : isUnmonitored
       ? `<div class="unmonitored-security-strip">Not tracked by any monitored registry — review before updating</div>`
       : '';
@@ -1479,7 +1564,7 @@ function render() {
       : isNewPlugin
       ? '<span class="new-plugin-badge">unverified</span>'
       : isAdded
-      ? `<span class="added-badge">${esc(p.marketplace || 'added')}</span>`
+      ? `<span class="added-badge">${esc(mktLabel)}</span>`
       : isUnmonitored
       ? 'unmonitored'
       : esc(typeLabel);
@@ -1560,8 +1645,40 @@ function render() {
     })()}
   </div>
   ${securityStrip}
+  <span class="ignore-link" onclick="ignorePlugin('${esc(p.name)}')">ignore</span>
 </div>`;
   }).join("");
+
+  // Ignored section (dimmed cards at bottom)
+  if (ignoredList.length > 0) {
+    grid.innerHTML += `<div class="ignored-section-row">— ignored (${ignoredList.length})</div>`;
+    grid.innerHTML += ignoredList.map(p => {
+      const count     = fmtCount(p.installs);
+      const pct       = popPct(p.installs);
+      const safeUrl   = p.url && /^https?:\/\//.test(p.url) ? p.url : '';
+      const stripe    = p.tier ? (p.tier === 'established' ? 'stripe-discovered' : 'stripe-new-plugin') : `stripe-${esc(p.type ?? 'external')}`;
+      const fill      = p.tier ? 'fill-discovered'                                                       : `fill-${esc(p.type ?? 'external')}`;
+      const typeLabel = p.type === 'added' ? (p.marketplace || 'added')
+                      : p.type === 'external' ? 'MCP' : (p.type?.toUpperCase() ?? '');
+      return `<div class="card card-ignored">
+  <div class="card-stripe ${stripe}"></div>
+  ${safeUrl ? `<a class="card-repo" href="${esc(safeUrl)}" target="_blank" rel="noopener">repo ↗</a>` : ''}
+  <div class="card-body">
+    <div class="card-type type-${esc(p.type ?? 'external')}">${esc(typeLabel)}</div>
+    <div class="card-name">${esc(p.name)}</div>
+    <div class="card-author">by&nbsp;${esc(p.author)}</div>
+    <div class="card-desc">${esc(p.desc)}</div>
+  </div>
+  <div class="card-footer">
+    <div class="pop-row">
+      <div class="pop-bar-wrap"><div class="pop-bar-fill ${fill}" style="width:${pct}%"></div></div>
+      <div class="pop-count ${count ? 'has-data' : ''}">${count ? count + ' installs' : '—'}</div>
+    </div>
+  </div>
+  <span class="unignore-link" onclick="unignorePlugin('${esc(p.name)}')">unignore</span>
+</div>`;
+    }).join("");
+  }
 }
 
 // ── Copy ─────────────────────────────────────────────────────
@@ -1639,6 +1756,7 @@ function initTheme() {
 
 // ── Init ─────────────────────────────────────────────────────
 initTheme();
+updateIgnoredChip();
 render();
 syncFromServer();
 </script>

@@ -22,7 +22,7 @@ function env(name, fallback = '') {
   return (!v || /^\$\{[^}]+\}$/.test(v)) ? fallback : v;
 }
 
-const SERVER_VERSION = '1.5.7';
+const SERVER_VERSION = '1.5.8';
 const PORT           = parseInt(env('PLUGIN_BROWSER_PORT', '3747'), 10);
 const DEV_MODE     = env('PLUGIN_BROWSER_DEV', '') === '1';
 const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
@@ -160,8 +160,12 @@ function readFromMarketplaceJson(dir, mktUrl) {
     // Only handle string sources (local relative paths); object sources (e.g. URL refs) can't be resolved locally
     if (typeof entry.source !== 'string') continue;
     hasLocalSources = true;
-    const pluginDir = path.resolve(dir, entry.source);
-    const manifest  = safeReadJson(path.join(pluginDir, '.claude-plugin', 'plugin.json'));
+    const pluginDir  = path.resolve(dir, entry.source);
+    // source may point to a manifest file directly (e.g. "./plugin.json") or a plugin subdirectory
+    const isJsonFile = pluginDir.endsWith('.json') && fs.existsSync(pluginDir);
+    const manifest   = isJsonFile
+      ? safeReadJson(pluginDir)
+      : safeReadJson(path.join(pluginDir, '.claude-plugin', 'plugin.json'));
     const desc      = manifest?.description || entry.description || '';
     const author    = manifest?.author?.name || mkt.owner?.name || 'unknown';
     if (!desc) continue;

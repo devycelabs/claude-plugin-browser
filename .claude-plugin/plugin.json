@@ -1,6 +1,6 @@
 {
   "name": "plugin-browser",
-  "version": "1.5.7",
+  "version": "1.5.8",
   "description": "Local web UI for browsing the official Claude Code plugin marketplace. Shows install counts, installed status, and one-click copy of install commands.",
   "author": {
     "name": "Devyce Labs",
