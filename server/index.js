@@ -23,6 +23,7 @@ function env(name, fallback = '') {
 }
 
 const PORT         = parseInt(env('PLUGIN_BROWSER_PORT', '3747'), 10);
+const DEV_MODE     = env('PLUGIN_BROWSER_DEV', '') === '1';
 const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
 const MARKETPLACE  = 'claude-plugins-official';
 const MKT_DIR      = path.join(PLUGINS_BASE, 'marketplaces', MARKETPLACE);
@@ -121,7 +122,7 @@ const COMMUNITY_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 let _communityCache = null;
 
 async function fetchCommunityRegistry() {
-  if (_communityCache && (Date.now() - _communityCache.fetchedAt) < COMMUNITY_CACHE_TTL) {
+  if (!DEV_MODE && _communityCache && (Date.now() - _communityCache.fetchedAt) < COMMUNITY_CACHE_TTL) {
     return { ..._communityCache.data, cached: true };
   }
 
@@ -191,7 +192,7 @@ function githubGet(apiPath) {
 const githubGetRaw = githubGet;
 
 async function checkUpdates() {
-  if (_updateCache && (Date.now() - _updateCache.fetchedAt) < UPDATE_CACHE_TTL) {
+  if (!DEV_MODE && _updateCache && (Date.now() - _updateCache.fetchedAt) < UPDATE_CACHE_TTL) {
     return { ..._updateCache.data, cached: true };
   }
 
