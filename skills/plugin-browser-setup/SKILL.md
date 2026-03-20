@@ -40,7 +40,7 @@ Guide the user through configuring the Plugin Browser after installation.
    **If Node.js is present:**
    - Tell the user to start the server:
      ```
-     node ~/.claude/plugins/cache/claude-plugins-official/plugin-browser/<version>/server/index.js
+     node ~/.claude/plugins/marketplaces/devycelabs-claude-plugin-browser/server/index.js
      ```
    - Offer to start it now by running that command.
    - Once started, open `http://localhost:3747` in the browser.
@@ -50,7 +50,7 @@ Guide the user through configuring the Plugin Browser after installation.
    - Tell the user the server requires Node.js (https://nodejs.org).
    - As a no-server fallback, they can open the HTML file directly:
      ```
-     ~/.claude/plugins/cache/claude-plugins-official/plugin-browser/<version>/browser/index.html
+     ~/.claude/plugins/marketplaces/devycelabs-claude-plugin-browser/browser/index.html
      ```
      This works offline using embedded data — live sync won't be available until Node.js is installed.
 

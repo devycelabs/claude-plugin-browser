@@ -26,7 +26,7 @@ Open the local Claude Code Plugin Browser UI.
    b. **If no MCP server is available** (plugin not installed with MCP, or running standalone):
       - Tell the user to start the server manually:
         ```
-        node ~/.claude/plugins/cache/claude-plugins-official/plugin-browser/<version>/server/index.js
+        node ~/.claude/plugins/marketplaces/devycelabs-claude-plugin-browser/server/index.js
         ```
         Or if they have the source repo cloned:
         ```
@@ -38,4 +38,4 @@ Open the local Claude Code Plugin Browser UI.
 ## Notes
 - The server runs on port **3747** and only binds to `127.0.0.1` — it is not exposed to the network.
 - The browser updates live when the **⟳ Sync** button is clicked.
-- Official plugin data is read from `~/.claude/plugins/` (no network needed). Community plugins and update checks fetch from GitHub when available.
+- Official plugin data and added marketplace data are read from `~/.claude/plugins/` (no network needed). Discovered plugins and update checks fetch from GitHub when available.
