@@ -22,7 +22,7 @@ function env(name, fallback = '') {
   return (!v || /^\$\{[^}]+\}$/.test(v)) ? fallback : v;
 }
 
-const SERVER_VERSION = '1.5.2';
+const SERVER_VERSION = '1.5.3';
 const PORT           = parseInt(env('PLUGIN_BROWSER_PORT', '3747'), 10);
 const DEV_MODE     = env('PLUGIN_BROWSER_DEV', '') === '1';
 const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
@@ -247,6 +247,9 @@ function getInstalledManifest(name, mkt) {
       path.join(base, sub, name, '.claude-plugin', 'plugin.json'));
     if (manifest) return { manifest, sub };
   }
+  // Also try root-level single-plugin marketplaces (plugin.json at marketplace root)
+  const rootManifest = safeReadJson(path.join(base, '.claude-plugin', 'plugin.json'));
+  if (rootManifest?.name === name) return { manifest: rootManifest, sub: null };
   return null;
 }
 
