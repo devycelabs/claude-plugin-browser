@@ -16,6 +16,10 @@ A local web UI for browsing Claude Code plugin marketplaces — official, added,
 - Official plugins synced from local `~/.claude/plugins/` cache — no network needed for core data
 - Fonts downloaded once on install and served locally
 
+## Requirements
+
+**Node.js 18 or later** must be on your system PATH. No npm install or build step required — the server uses only Node.js built-in modules.
+
 ## Install via Claude Code
 
 ```
