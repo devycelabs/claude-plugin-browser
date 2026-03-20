@@ -241,6 +241,8 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
 .filter-btn.f-community           { color: #a78bfa; border-color: rgba(167,139,250,0.35); }
 .filter-btn.active.f-unmonitored  { background: var(--c-gold);        border-color: var(--c-gold);       color: #1a1400; }
 .filter-btn.f-unmonitored         { color: var(--c-gold); border-color: rgba(224,192,74,0.35); }
+.filter-btn.active.f-discovered   { background: #38bdf8; border-color: #38bdf8; color: #051a2e; }
+.filter-btn.f-discovered          { color: #38bdf8; border-color: rgba(56,189,248,0.35); }
 
 /* ── Community / archived ───────────────────────────────────── */
 .card.archived { opacity: 0.55; }
@@ -261,10 +263,65 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
 }
 .stripe-community   { background: #a78bfa; }
 .stripe-unmonitored { background: var(--c-gold); }
+.stripe-discovered  { background: #38bdf8; }
+.stripe-new-plugin  { background: rgba(56,189,248,0.35); }
 .type-unmonitored   { font-family: var(--f-mono); font-size: 0.6rem; letter-spacing: 0.06em;
                       text-transform: uppercase; color: var(--c-gold);
                       background: rgba(224,192,74,0.1); border: 1px solid rgba(224,192,74,0.25);
                       border-radius: 3px; padding: 1px 5px; display: inline-block; margin-bottom: 6px; }
+
+.discovered-badge {
+  display: inline-block;
+  font-size: 0.6rem; font-family: var(--f-mono); font-weight: 600;
+  color: #38bdf8; background: rgba(56,189,248,0.1);
+  border: 1px solid rgba(56,189,248,0.25); border-radius: 3px;
+  padding: 1px 5px; letter-spacing: 0.02em;
+}
+.new-plugin-badge {
+  display: inline-block;
+  font-size: 0.6rem; font-family: var(--f-mono); font-weight: 600;
+  color: rgba(56,189,248,0.55); background: rgba(56,189,248,0.06);
+  border: 1px solid rgba(56,189,248,0.15); border-radius: 3px;
+  padding: 1px 5px; letter-spacing: 0.02em;
+}
+.discovered-security-strip {
+  background: rgba(56,189,248,0.06);
+  border-top: 1px solid rgba(56,189,248,0.18);
+  padding: 6px 14px;
+  font-family: var(--f-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.02em;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.discovered-security-strip::before { content: '🔭'; font-size: 0.65rem; }
+.new-plugin-security-strip {
+  background: rgba(56,189,248,0.04);
+  border-top: 1px solid rgba(56,189,248,0.12);
+  padding: 6px 14px;
+  font-family: var(--f-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.new-plugin-security-strip::before { content: '⚠'; font-size: 0.65rem; }
+.fill-discovered { background: #38bdf8; }
+.section-divider {
+  grid-column: 1/-1;
+  padding: 8px 20px;
+  font-family: var(--f-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(56,189,248,0.5);
+  border-bottom: 1px solid rgba(56,189,248,0.12);
+  background: rgba(56,189,248,0.03);
+}
 
 /* Sort */
 .sort-wrap {
@@ -420,9 +477,10 @@ select:focus { border-color: var(--muted); }
   text-transform: uppercase;
   opacity: 0.75;
 }
-.type-anthropic { color: var(--c-anthropic); }
-.type-external  { color: var(--c-external); }
-.type-lsp       { color: var(--c-lsp); }
+.type-anthropic  { color: var(--c-anthropic); }
+.type-external   { color: var(--c-external); }
+.type-lsp        { color: var(--c-lsp); }
+.type-discovered { color: #38bdf8; }
 
 /* Plugin name */
 .card-name {
@@ -772,12 +830,14 @@ html { transition: background 0.25s, color 0.25s; }
     <button class="filter-btn f-updates" id="updates-tab" onclick="setFilter('updates',this)" style="display:none">Updates <span id="updates-count"></span></button>
     <button class="filter-btn f-community" id="community-tab" onclick="setFilter('community',this)" style="display:none">Community <span id="community-count"></span></button>
     <button class="filter-btn f-unmonitored" id="unmonitored-tab" onclick="setFilter('unmonitored',this)" style="display:none">Unmonitored <span id="unmonitored-count"></span></button>
+    <button class="filter-btn f-discovered" id="discovered-tab" onclick="setFilter('discovered',this)" style="display:none">Discovered <span id="discovered-count"></span></button>
   </div>
   <div class="sort-wrap">
     <span>Sort</span>
     <select id="sort" onchange="render()">
       <option value="popular">Popular</option>
       <option value="name">Name A–Z</option>
+      <option value="recently-updated" id="sort-recently-updated" style="display:none">Recently updated</option>
     </select>
   </div>
 
@@ -909,6 +969,7 @@ let liveInstalledDetails= null;
 let liveMarketplaces    = null;
 let liveUpdates         = null;
 let communityPlugins    = null; // fetched from /api/community
+let discoveredPlugins   = null; // { established: [...], new: [...] } after fetch
 let lastSynced          = null;
 
 const COMMUNITY_MKT_REPO = 'devycelabs/claude-plugins-community';
@@ -1015,6 +1076,7 @@ async function syncFromServer() {
     // Kick off background checks — non-blocking
     fetchUpdateStatus();
     fetchCommunityPlugins();
+    fetchDiscoveredPlugins();
   } catch {
     setStatus("offline", "offline");
   } finally {
@@ -1061,8 +1123,50 @@ async function fetchCommunityPlugins() {
     }
     updatePromo();
     updateUnmonitoredTab();
+    // Race condition fix: re-dedup discovered plugins against newly loaded community names
+    if (discoveredPlugins) applyDiscoveredDedup();
     render();
   } catch { /* community fetch is best-effort */ }
+}
+
+function applyDiscoveredDedup() {
+  if (!discoveredPlugins) return;
+  const taken = new Set([
+    ...activePlugins().map(p => p.name),
+    ...(communityPlugins ?? []).map(p => p.name),
+  ]);
+  const all = discoveredPlugins._raw ?? [];
+  discoveredPlugins = {
+    _raw:        all,
+    established: all.filter(p => p.tier === 'established' && !taken.has(p.name)),
+    new:         all.filter(p => p.tier === 'new'         && !taken.has(p.name)),
+  };
+  const total = discoveredPlugins.established.length + discoveredPlugins.new.length;
+  const tab   = document.getElementById('discovered-tab');
+  const cnt   = document.getElementById('discovered-count');
+  if (total > 0) {
+    cnt.textContent     = `(${total})`;
+    tab.style.display   = '';
+  } else {
+    tab.style.display   = 'none';
+    if (activeFilter === 'discovered') setFilter('all', document.querySelector('.filter-btn.f-all'));
+  }
+}
+
+async function fetchDiscoveredPlugins() {
+  const discoverUrl = API.replace('/api/plugins', '/api/discover');
+  try {
+    const resp = await fetch(discoverUrl, { signal: AbortSignal.timeout(15_000) });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const raw = data.plugins ?? [];
+    if (!raw.length) return; // tab stays hidden
+
+    // Store raw then dedup
+    discoveredPlugins = { _raw: raw, established: [], new: [] };
+    applyDiscoveredDedup();
+    render();
+  } catch { /* best-effort */ }
 }
 
 // ── State ────────────────────────────────────────────────────
@@ -1089,6 +1193,9 @@ function setFilter(f, btn) {
   activeFilter = f;
   document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
+  // Show "Recently updated" sort only on Discovered tab
+  const recentOpt = document.getElementById('sort-recently-updated');
+  if (recentOpt) recentOpt.style.display = f === 'discovered' ? '' : 'none';
   render();
 }
 
@@ -1113,7 +1220,20 @@ function render() {
   // Build lists for special tabs
   const unmonitored = getUnmonitoredPlugins();
 
-  if (activeFilter === 'unmonitored') {
+  if (activeFilter === 'discovered') {
+    const established = discoveredPlugins?.established ?? [];
+    const newPlugins  = discoveredPlugins?.new ?? [];
+    list = [
+      ...established,
+      ...newPlugins,
+    ].map(p => ({
+      ...p,
+      url:       p.repoUrl,
+      installs:  0,
+      installed: activeInstalled().includes(p.name),
+      hasUpdate: false,
+    }));
+  } else if (activeFilter === 'unmonitored') {
     list = unmonitored;
   } else if (activeFilter === 'community') {
     list = (communityPlugins ?? []).map(p => ({
@@ -1144,12 +1264,19 @@ function render() {
   );
 
   if (sort === "popular") list.sort((a,b) => b.installs - a.installs);
+  else if (sort === "recently-updated") list.sort((a,b) => {
+    const da = a.lastMarketplaceCommit ? new Date(a.lastMarketplaceCommit).getTime() : 0;
+    const db = b.lastMarketplaceCommit ? new Date(b.lastMarketplaceCommit).getTime() : 0;
+    return db - da;
+  });
   else                    list.sort((a,b) => a.name.localeCompare(b.name));
 
   // Stats — total pool varies by active tab
   const communityExtras = communityPlugins?.filter(p => !new Set(activePlugins().map(q => q.name)).has(p.name)).length ?? 0;
+  const discoveredTotal = (discoveredPlugins?.established?.length ?? 0) + (discoveredPlugins?.new?.length ?? 0);
   const totalPool = activeFilter === 'community'   ? (communityPlugins?.length ?? 0)
                   : activeFilter === 'unmonitored' ? unmonitored.length
+                  : activeFilter === 'discovered'  ? discoveredTotal
                   : activePlugins().length + (activeFilter === 'all' || activeFilter === 'installed' ? communityExtras : 0);
   document.getElementById("stats").innerHTML =
     `<em>${list.length}</em> of <em>${totalPool}</em> plugins`;
@@ -1163,38 +1290,82 @@ function render() {
     return;
   }
 
+  // For discovered tab: split list back into tiers to render divider
+  const isDiscovered = activeFilter === 'discovered';
+  const establishedCount = isDiscovered ? (discoveredPlugins?.established?.length ?? 0) : 0;
+
   grid.innerHTML = list.map((p, i) => {
     const count  = fmtCount(p.installs);
     const pct    = popPct(p.installs);
     const cmd    = `/plugin install ${p.name}`;
     const delay  = Math.min(i * 28, 500);
 
-    const isCommunity = p.type === 'community';
-    const typeLabel   = isCommunity ? 'community'
-                      : p.type === 'external' ? 'MCP' : p.type.toUpperCase();
+    const isCommunity   = p.type === 'community';
+    const isUnmonitored = p.type === 'unmonitored';
+    const isEstablished = isDiscovered && i < establishedCount;
+    const isNewPlugin   = isDiscovered && i >= establishedCount;
+
+    const stripeClass = isEstablished ? 'stripe-discovered'
+                      : isNewPlugin   ? 'stripe-new-plugin'
+                      : `stripe-${esc(p.type)}`;
+
+    const typeLabel = isCommunity ? 'community'
+                    : p.type === 'external' ? 'MCP' : p.type.toUpperCase();
 
     // safe URL: allow http/https only
     const safeUrl = p.url && /^https?:\/\//.test(p.url) ? p.url : '';
 
-    const isUnmonitored = p.type === 'unmonitored';
-    const securityStrip = isCommunity
+    const securityStrip = isEstablished
+      ? `<div class="discovered-security-strip">Found via GitHub Code Search — not in any managed registry.</div>`
+      : isNewPlugin
+      ? `<div class="new-plugin-security-strip">Low-star repo — inspect source carefully before installing.</div>`
+      : isCommunity
       ? `<div class="community-security-strip">Review source ${p.installed ? 'before updating' : 'before installing'}</div>`
       : isUnmonitored
       ? `<div class="community-security-strip">Not tracked by any monitored registry — review before updating</div>`
       : '';
 
-    return `
+    const typeBadge = isEstablished
+      ? '<span class="discovered-badge">discovered</span>'
+      : isNewPlugin
+      ? '<span class="new-plugin-badge">unverified</span>'
+      : isCommunity
+      ? '<span class="community-badge">community</span>'
+      : isUnmonitored
+      ? 'unmonitored'
+      : esc(typeLabel);
+
+    const typeClass = isEstablished || isNewPlugin ? 'type-discovered' : `type-${esc(p.type)}`;
+
+    const fillClass = isEstablished
+      ? 'fill-discovered'
+      : isNewPlugin
+      ? 'fill-discovered'
+      : `fill-${esc(p.type)}`;
+
+    const fillStyle = isNewPlugin ? ' opacity:0.3;' : '';
+
+    // Section divider between established and new tiers
+    const divider = isDiscovered && i === establishedCount && establishedCount > 0 && list.length > establishedCount
+      ? `<div class="section-divider">New &amp; Unverified — 1–4 stars</div>`
+      : '';
+
+    const starInfo = (isEstablished || isNewPlugin) && p.stars
+      ? ` <span style="opacity:0.45;font-size:0.75em">· ${p.stars}★</span>`
+      : '';
+
+    return `${divider}
 <div class="card${p.archived ? ' archived' : ''}" style="animation-delay:${delay}ms">
-  <div class="card-stripe stripe-${esc(p.type)}"></div>
+  <div class="card-stripe ${stripeClass}"></div>
   ${safeUrl ? `<a class="card-repo" href="${esc(safeUrl)}" target="_blank" rel="noopener" title="View repository">repo ↗</a>` : ''}
   <div class="card-body">
-    <div class="card-type type-${esc(p.type)}">${isCommunity ? '<span class="community-badge">community</span>' : isUnmonitored ? 'unmonitored' : esc(typeLabel)}</div>
+    <div class="card-type ${typeClass}">${typeBadge}</div>
     <div class="card-name">
       ${esc(p.name)}${p.installed ? ' <span class="installed-pip" title="Installed"></span>' : ''}${p.hasUpdate ? ' <span class="update-pip" title="Update available — reinstall to get latest">↑ update</span>' : ''}${p.archived ? ' <span class="archived-badge" title="No longer actively maintained">archived</span>' : ''}
     </div>
     <div class="card-author">${isUnmonitored
       ? `source: ${esc(p.marketplace || 'unknown')}`
-      : `by&nbsp;${esc(p.author)}${p.updateInfo?.latestCommitDate ? ` <span style="opacity:0.45;font-size:0.75em">· latest ${esc(new Date(p.updateInfo.latestCommitDate).toLocaleDateString())}</span>` : ''}`
+      : `by&nbsp;${esc(p.author)}${starInfo}${p.updateInfo?.latestCommitDate ? ` <span style="opacity:0.45;font-size:0.75em">· latest ${esc(new Date(p.updateInfo.latestCommitDate).toLocaleDateString())}</span>` : ''}`
     }</div>
     <div class="card-desc">${isUnmonitored && p.installedAt
       ? `<span style="opacity:0.5;font-size:0.75em;font-family:var(--f-mono)">installed ${esc(new Date(p.installedAt).toLocaleDateString())}${p.version ? ' · v' + esc(p.version) : ''}</span>`
@@ -1203,7 +1374,7 @@ function render() {
   </div>
   <div class="card-footer">
     <div class="pop-row">
-      <div class="pop-bar-wrap"><div class="pop-bar-fill fill-${esc(p.type)}" style="width:${pct}%"></div></div>
+      <div class="pop-bar-wrap"><div class="pop-bar-fill ${fillClass}" style="width:${pct}%;${fillStyle}"></div></div>
       <div class="pop-count ${count ? 'has-data' : ''}">${count ? count + ' installs' : '—'}</div>
     </div>
     <div class="install-cmd${p.installed ? ' installed-cmd' : ''}" onclick="copyCmd('${esc(cmd)}')" title="Click to copy">

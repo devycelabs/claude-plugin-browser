@@ -121,6 +121,11 @@ const COMMUNITY_REGISTRY = 'devycelabs/claude-plugins-community';
 const COMMUNITY_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 let _communityCache = null;
 
+const DISCOVERED_CACHE_FILE = path.join(PLUGIN_DATA, 'discovered-plugins.json');
+const DISCOVERED_CACHE_TTL  = 7 * 24 * 60 * 60 * 1000; // 7 days
+const DISCOVERED_DATA_URL   =
+  'repos/devycelabs/claude-plugin-browser/contents/data/discovered.json';
+
 async function fetchCommunityRegistry() {
   if (!DEV_MODE && _communityCache && (Date.now() - _communityCache.fetchedAt) < COMMUNITY_CACHE_TTL) {
     return { ..._communityCache.data, cached: true };
@@ -162,6 +167,40 @@ async function fetchCommunityRegistry() {
   return data;
 }
 
+// ── Discovered registry ───────────────────────────────────────
+
+let _discoveredCache       = null;
+let _discoveredCacheLoaded = false;
+
+async function discoverPlugins() {
+  if (!_discoveredCacheLoaded) {
+    _discoveredCacheLoaded = true;
+    const raw = safeReadJson(DISCOVERED_CACHE_FILE);
+    if (raw?.plugins) _discoveredCache = raw;
+  }
+
+  const stale = !_discoveredCache ||
+    (Date.now() - new Date(_discoveredCache.generatedAt).getTime()) > DISCOVERED_CACHE_TTL;
+
+  if (!DEV_MODE && !stale) return { ..._discoveredCache, cached: true };
+
+  const raw = await githubGetRaw(DISCOVERED_DATA_URL);
+  if (!raw?.content) return _discoveredCache ?? { plugins: [], error: 'unavailable' };
+
+  let data;
+  try {
+    data = JSON.parse(Buffer.from(raw.content, 'base64').toString('utf8'));
+  } catch { return _discoveredCache ?? { plugins: [], error: 'parse error' }; }
+
+  _discoveredCache = data;
+  try {
+    fs.mkdirSync(path.dirname(DISCOVERED_CACHE_FILE), { recursive: true });
+    fs.writeFileSync(DISCOVERED_CACHE_FILE, JSON.stringify(data, null, 2), 'utf8');
+  } catch { /* best-effort */ }
+
+  return data;
+}
+
 // ── Update checker ────────────────────────────────────────────
 
 let _updateCache = null;
@@ -172,7 +211,7 @@ function githubGet(apiPath) {
     const req = https.get({
       hostname: 'api.github.com',
       path: '/' + apiPath,
-      headers: { 'User-Agent': 'plugin-browser/1.0.0',
+      headers: { 'User-Agent': 'plugin-browser/1.3.7',
                  'Accept': 'application/vnd.github.v3+json' },
     }, res => {
       const chunks = [];
@@ -349,6 +388,19 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
 
+  if (url.pathname === '/api/discover') {
+    discoverPlugins()
+      .then(data => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(data));
+      })
+      .catch(err => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message, plugins: [] }));
+      });
+    return;
+  }
+
   if (url.pathname === '/api/check-updates') {
     checkUpdates()
       .then(data => {
@@ -444,7 +496,7 @@ function handleMcp(msg) {
     return mcpSend({ jsonrpc: '2.0', id, result: {
       protocolVersion: '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: 'plugin-browser', version: '1.0.0' },
+      serverInfo: { name: 'plugin-browser', version: '1.3.7' },
     }});
   }
 
