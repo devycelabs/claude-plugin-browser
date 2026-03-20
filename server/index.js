@@ -22,7 +22,7 @@ function env(name, fallback = '') {
   return (!v || /^\$\{[^}]+\}$/.test(v)) ? fallback : v;
 }
 
-const SERVER_VERSION = '1.5.0';
+const SERVER_VERSION = '1.5.1';
 const PORT           = parseInt(env('PLUGIN_BROWSER_PORT', '3747'), 10);
 const DEV_MODE     = env('PLUGIN_BROWSER_DEV', '') === '1';
 const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
@@ -132,6 +132,18 @@ const DISCOVERED_CACHE_TTL  = 7 * 24 * 60 * 60 * 1000; // 7 days
 const DISCOVERED_DATA_URL   =
   'repos/devycelabs/claude-plugin-browser-data/contents/discovered.json';
 
+// Read a single-plugin marketplace (plugin.json lives at repo root, not inside plugins/)
+function readRootPlugin(dir, defaultType) {
+  const manifest = safeReadJson(path.join(dir, '.claude-plugin', 'plugin.json'));
+  if (!manifest?.name) return [];
+  const name   = manifest.name;
+  const desc   = manifest.description || '';
+  const author = manifest.author?.name || 'unknown';
+  if (!desc) return [];
+  const url = manifest.repository || manifest.homepage || manifest.author?.url || null;
+  return [{ name, desc, author, type: defaultType, url }];
+}
+
 function loadAddedMarketplaces() {
   const known = safeReadJson(path.join(PLUGINS_BASE, 'known_marketplaces.json'));
   const plugins = [];
@@ -139,10 +151,13 @@ function loadAddedMarketplaces() {
     if (mktName === MARKETPLACE) continue; // skip official
     const dir = info.installLocation;
     if (!dir) continue;
-    const entries = [
+    const fromSubdirs = [
       ...readPluginEntries(path.join(dir, 'plugins'),          'added'),
       ...readPluginEntries(path.join(dir, 'external_plugins'), 'added'),
-    ].map(p => ({
+    ];
+    // Also try root-level single-plugin repos (no plugins/ subdir)
+    const fromRoot = fromSubdirs.length === 0 ? readRootPlugin(dir, 'added') : [];
+    const entries = [...fromSubdirs, ...fromRoot].map(p => ({
       ...p,
       marketplace:     mktName,
       marketplaceRepo: info.source?.repo ?? null,
