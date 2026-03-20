@@ -806,7 +806,7 @@ html { transition: background 0.25s, color 0.25s; }
 }
 .restart-banner strong { font-weight: 700; }
 
-/* ── Keyword sub-filters (Discovered tab) ────────────────── */
+/* ── Keyword sub-filters ─────────────────────────────────── */
 #keyword-filter-row {
   display: none;
   padding: 8px 44px 10px;
@@ -816,6 +816,7 @@ html { transition: background 0.25s, color 0.25s; }
   background: rgba(56,189,248,0.03);
   align-items: center;
 }
+#keyword-filter-row.added-kf { background: rgba(167,139,250,0.03); }
 #keyword-filter-row .kf-label {
   font-family: var(--f-mono);
   font-size: 0.6rem;
@@ -840,6 +841,10 @@ html { transition: background 0.25s, color 0.25s; }
 }
 .kw-chip:hover { color: #38bdf8; border-color: #38bdf8; }
 .kw-chip.active { background: #38bdf8; color: #051a2e; border-color: #38bdf8; }
+/* Purple overrides for Added tab */
+.added-kf .kw-chip { border-color: rgba(167,139,250,0.25); color: rgba(167,139,250,0.65); }
+.added-kf .kw-chip:hover { color: #a78bfa; border-color: #a78bfa; }
+.added-kf .kw-chip.active { background: #a78bfa; color: #1a0050; border-color: #a78bfa; }
 .kw-chip .kw-count { opacity: 0.55; font-size: 0.58rem; margin-left: 3px; }
 .kf-clear {
   font-family: var(--f-mono);
@@ -1110,15 +1115,15 @@ function updateRestartBanner(data) {
 }
 
 // ── Keyword sub-filters ──────────────────────────────────────
-function buildKeywordCounts() {
+function buildKeywordCounts(source, minCount = 1) {
   const counts = {};
-  for (const p of (discoveredPlugins?._raw ?? [])) {
+  for (const p of (source ?? [])) {
     for (const kw of (p.keywords ?? [])) {
       if (kw) counts[kw] = (counts[kw] || 0) + 1;
     }
   }
   return Object.entries(counts)
-    .filter(([, count]) => count >= 4)
+    .filter(([, count]) => count >= minCount)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 24)
     .map(([kw, count]) => ({ kw, count }));
@@ -1133,13 +1138,20 @@ function toggleKeyword(kw) {
 
 function updateKeywordFilterRow() {
   const row = document.getElementById('keyword-filter-row');
-  if (activeFilter !== 'discovered' || !discoveredPlugins) {
-    row.style.display = 'none';
-    return;
-  }
-  const keywords = buildKeywordCounts();
+  const isDisc  = activeFilter === 'discovered';
+  const isAdded = activeFilter === 'added';
+
+  if (isDisc && !discoveredPlugins) { row.style.display = 'none'; return; }
+  if (isAdded && !addedPlugins)     { row.style.display = 'none'; return; }
+  if (!isDisc && !isAdded)          { row.style.display = 'none'; return; }
+
+  const keywords = isDisc
+    ? buildKeywordCounts(discoveredPlugins._raw, 4)
+    : buildKeywordCounts(addedPlugins, 1); // no min-count for added
+
   if (!keywords.length) { row.style.display = 'none'; return; }
 
+  row.className = isAdded ? 'added-kf' : '';
   row.style.display = 'flex';
   const clearBtn = activeKeywords.size
     ? `<button class="kf-clear" onclick="activeKeywords.clear();updateKeywordFilterRow();render()">clear</button>`
@@ -1231,6 +1243,7 @@ async function fetchAddedPlugins() {
       document.getElementById('added-tab').style.display = 'none';
     }
     updateUnmonitoredTab();
+    updateKeywordFilterRow();
     // Race condition fix: re-dedup discovered plugins against newly loaded added names
     if (discoveredPlugins) applyDiscoveredDedup();
     render();
@@ -1310,7 +1323,7 @@ function setFilter(f, btn) {
   // Show "Recently updated" sort only on Discovered tab
   const recentOpt = document.getElementById('sort-recently-updated');
   if (recentOpt) recentOpt.style.display = f === 'discovered' ? '' : 'none';
-  if (f !== 'discovered') { activeKeywords.clear(); }
+  if (f !== 'discovered' && f !== 'added') { activeKeywords.clear(); }
   updateKeywordFilterRow();
   render();
 }
@@ -1358,7 +1371,11 @@ function render() {
   } else if (activeFilter === 'unmonitored') {
     list = unmonitored;
   } else if (activeFilter === 'added') {
-    list = (addedPlugins ?? []).map(p => ({
+    let src = addedPlugins ?? [];
+    if (activeKeywords.size) {
+      src = src.filter(p => (p.keywords ?? []).some(k => activeKeywords.has(k)));
+    }
+    list = src.map(p => ({
       ...p,
       installs:  0,
       installed: activeInstalled().includes(p.name),

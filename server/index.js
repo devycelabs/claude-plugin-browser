@@ -22,7 +22,7 @@ function env(name, fallback = '') {
   return (!v || /^\$\{[^}]+\}$/.test(v)) ? fallback : v;
 }
 
-const SERVER_VERSION = '1.5.4';
+const SERVER_VERSION = '1.5.5';
 const PORT           = parseInt(env('PLUGIN_BROWSER_PORT', '3747'), 10);
 const DEV_MODE     = env('PLUGIN_BROWSER_DEV', '') === '1';
 const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
@@ -71,7 +71,8 @@ function readPluginEntries(dir, defaultType, fallbackUrl = null) {
     const repoSubdir  = defaultType === 'external' ? 'external_plugins' : 'plugins';
     const url = explicitUrl || fallbackUrl || `https://github.com/anthropics/claude-plugins-official/tree/main/${repoSubdir}/${name}`;
 
-    return [{ name, desc, author, type, url }];
+    const keywords = manifest?.keywords ?? [];
+    return [{ name, desc, author, type, url, keywords }];
   });
 }
 
@@ -140,8 +141,9 @@ function readRootPlugin(dir, defaultType) {
   const desc   = manifest.description || '';
   const author = manifest.author?.name || 'unknown';
   if (!desc) return [];
-  const url = manifest.repository || manifest.homepage || manifest.author?.url || null;
-  return [{ name, desc, author, type: defaultType, url }];
+  const url      = manifest.repository || manifest.homepage || manifest.author?.url || null;
+  const keywords = manifest.keywords ?? [];
+  return [{ name, desc, author, type: defaultType, url, keywords }];
 }
 
 function loadAddedMarketplaces() {
