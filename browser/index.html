@@ -235,8 +235,6 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
 .filter-btn.active.f-external  { background: var(--c-external);   border-color: var(--c-external);   color: #fff; }
 .filter-btn.active.f-lsp       { background: var(--c-lsp);        border-color: var(--c-lsp);        color: #fff; }
 .filter-btn.active.f-installed { background: var(--c-installed);  border-color: var(--c-installed);  color: #000; }
-.filter-btn.active.f-updates    { background: #E8930A;             border-color: #E8930A;             color: #1C0A0A; }
-.filter-btn.f-updates           { color: #E8930A; border-color: rgba(232,147,10,0.35); }
 .filter-btn.active.f-added        { background: #a78bfa;             border-color: #a78bfa;             color: #1a0050; }
 .filter-btn.f-added               { color: #a78bfa; border-color: rgba(167,139,250,0.35); }
 .filter-btn.active.f-unmonitored  { background: var(--c-gold);        border-color: var(--c-gold);       color: #1a1400; }
@@ -311,6 +309,16 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
 }
 .new-plugin-security-strip::before { content: '⚠'; font-size: 0.65rem; }
 .fill-discovered { background: #38bdf8; }
+.discovered-freshness-row {
+  grid-column: 1 / -1;
+  padding: 6px 20px;
+  font-family: var(--f-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  color: #2e4a5a;
+  background: rgba(56,189,248,0.03);
+  border-bottom: 1px solid rgba(56,189,248,0.1);
+}
 .section-divider {
   grid-column: 1/-1;
   padding: 8px 20px;
@@ -322,6 +330,16 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
   border-bottom: 1px solid rgba(56,189,248,0.12);
   background: rgba(56,189,248,0.03);
 }
+.discovered-freshness-row {
+  grid-column: 1 / -1;
+  padding: 6px 20px;
+  font-family: var(--f-mono);
+  font-size: 0.57rem;
+  letter-spacing: 0.06em;
+  color: #2a4a5c;
+  border-bottom: 1px solid rgba(56,189,248,0.08);
+}
+
 .section-divider-added {
   grid-column: 1/-1;
   padding: 8px 20px;
@@ -543,20 +561,6 @@ select:focus { border-color: var(--muted); }
   position: relative;
   top: -1px;
   box-shadow: 0 0 6px var(--c-installed);
-}
-.update-pip {
-  display: inline-block;
-  font-size: 0.6rem;
-  font-family: var(--f-mono);
-  font-weight: 600;
-  color: #1C0A0A;
-  background: #E8930A;
-  border-radius: 3px;
-  padding: 1px 5px;
-  position: relative;
-  top: -1px;
-  letter-spacing: 0.02em;
-  cursor: default;
 }
 
 /* Author */
@@ -902,7 +906,7 @@ html { transition: background 0.25s, color 0.25s; }
 }
 .filter-btn.f-ignored { color: #3a3840; border-color: #222127; }
 .filter-btn.f-ignored:hover { color: #666; border-color: #3a3840; }
-.filter-btn.f-ignored.hide-active { color: #555; border-color: #2e2c35; background: #14131a; }
+.filter-btn.f-ignored.hide-active { color: #888; border-color: #3a3840; background: #18161e; text-decoration: line-through; }
 
 /* ── Page footer ─────────────────────────────────────────── */
 .page-footer {
@@ -952,7 +956,6 @@ html { transition: background 0.25s, color 0.25s; }
     <button class="filter-btn f-external"          onclick="setFilter('external',this)">MCP</button>
     <button class="filter-btn f-lsp"               onclick="setFilter('lsp',this)">LSP</button>
     <button class="filter-btn f-installed"         onclick="setFilter('installed',this)">Installed</button>
-    <button class="filter-btn f-updates" id="updates-tab" onclick="setFilter('updates',this)" style="display:none">Updates <span id="updates-count"></span></button>
     <button class="filter-btn f-added" id="added-tab" onclick="setFilter('added',this)" style="display:none">Added <span id="added-count"></span></button>
     <button class="filter-btn f-unmonitored" id="unmonitored-tab" onclick="setFilter('unmonitored',this)" style="display:none">Unmonitored <span id="unmonitored-count"></span></button>
     <button class="filter-btn f-discovered" id="discovered-tab" onclick="setFilter('discovered',this)" style="display:none">Discovered <span id="discovered-count"></span></button>
@@ -1096,9 +1099,9 @@ let liveInstallCounts   = null;
 let liveInstalled       = null;
 let liveInstalledDetails= null;
 let liveMarketplaces    = null;
-let liveUpdates         = null;
 let addedPlugins        = null; // fetched from /api/added (user-added marketplace plugins)
-let discoveredPlugins   = null; // { established: [...], new: [...] } after fetch
+let discoveredPlugins        = null; // { established: [...], new: [...] } after fetch
+let discoveredGeneratedAt   = null; // ISO date string from crawl metadata
 let activeKeywords      = new Set(); // active keyword sub-filters (Discovered tab)
 let ignoredPlugins      = new Set(JSON.parse(localStorage.getItem('pluginBrowserIgnored') || '[]'));
 let hideIgnored         = false;
@@ -1242,7 +1245,6 @@ async function syncFromServer() {
     updateUnmonitoredTab();
     render();
     // Kick off background checks — non-blocking
-    fetchUpdateStatus();
     fetchAddedPlugins();
     fetchDiscoveredPlugins();
   } catch {
@@ -1251,29 +1253,6 @@ async function syncFromServer() {
     btn.disabled = false;
     btn.classList.remove("syncing");
   }
-}
-
-// ── Update checker ────────────────────────────────────────────
-async function fetchUpdateStatus() {
-  const updateUrl = API.replace('/api/plugins', '/api/check-updates');
-  try {
-    const resp = await fetch(updateUrl, { signal: AbortSignal.timeout(30_000) });
-    if (!resp.ok) return;
-    const data = await resp.json();
-    // Build lookup: { pluginName: updateInfo }
-    liveUpdates = {};
-    for (const u of (data.updates ?? [])) {
-      liveUpdates[u.name] = u;
-    }
-    const updatable = Object.values(liveUpdates).filter(u => u.updateAvailable).length;
-    const tab = document.getElementById('updates-tab');
-    const cnt = document.getElementById('updates-count');
-    if (updatable > 0) {
-      cnt.textContent = `(${updatable})`;
-      tab.style.display = '';
-    }
-    render();
-  } catch { /* update check is best-effort */ }
 }
 
 async function fetchAddedPlugins() {
@@ -1335,6 +1314,8 @@ async function fetchDiscoveredPlugins() {
     const raw = data.plugins ?? [];
     if (!raw.length) return; // tab stays hidden
 
+    discoveredGeneratedAt = data.generatedAt ?? null;
+
     // Store raw then dedup
     discoveredPlugins = { _raw: raw, established: [], new: [] };
     applyDiscoveredDedup();
@@ -1364,6 +1345,7 @@ function updateIgnoredChip() {
     chip.style.display = '';
     cnt.textContent = `(${ignoredPlugins.size})`;
     chip.classList.toggle('hide-active', hideIgnored);
+    chip.firstChild.nodeValue = hideIgnored ? '↩ ignored ' : '— ignored ';
   } else {
     chip.style.display = 'none';
     hideIgnored = false;
@@ -1419,8 +1401,6 @@ function render() {
     ...p,
     installs:  counts[p.name] || 0,
     installed: instList.includes(p.name),
-    hasUpdate: liveUpdates?.[p.name]?.updateAvailable === true,
-    updateInfo: liveUpdates?.[p.name] ?? null,
     // fallback: construct GitHub URL for embedded data that has no url
     url: p.url || `https://github.com/anthropics/claude-plugins-official/tree/main/${p.type === 'external' ? 'external_plugins' : 'plugins'}/${p.name}`,
   }));
@@ -1473,7 +1453,6 @@ function render() {
       list = [...list, ...extras];
     }
     if (activeFilter === "installed") list = list.filter(p => p.installed);
-    else if (activeFilter === "updates") list = list.filter(p => p.hasUpdate);
     else if (activeFilter !== "all")  list = list.filter(p => p.type === activeFilter);
   }
 
@@ -1528,7 +1507,14 @@ function render() {
     for (const p of list) mktCounts[p.marketplace || ''] = (mktCounts[p.marketplace || ''] || 0) + 1;
   }
 
-  grid.innerHTML = list.map((p, i) => {
+  const freshnessRow = isDiscovered ? (() => {
+    const dateStr = discoveredGeneratedAt
+      ? new Date(discoveredGeneratedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+      : 'unknown';
+    return `<div class="discovered-freshness-row">🔄 Updated weekly via GitHub Actions (Sundays UTC) · last run: ${dateStr} · new repos may take up to 7 days to appear</div>`;
+  })() : '';
+
+  grid.innerHTML = freshnessRow + list.map((p, i) => {
     const count  = fmtCount(p.installs);
     const pct    = popPct(p.installs);
     const delay  = Math.min(i * 28, 500);
@@ -1607,11 +1593,11 @@ function render() {
   <div class="card-body">
     <div class="card-type ${typeClass}">${typeBadge}</div>
     <div class="card-name">
-      ${esc(p.name)}${p.installed ? ' <span class="installed-pip" title="Installed"></span>' : ''}${p.hasUpdate ? ' <span class="update-pip" title="Update available — reinstall to get latest">↑ update</span>' : ''}${p.archived ? ' <span class="archived-badge" title="No longer actively maintained">archived</span>' : ''}
+      ${esc(p.name)}${p.installed ? ' <span class="installed-pip" title="Installed"></span>' : ''}${p.archived ? ' <span class="archived-badge" title="No longer actively maintained">archived</span>' : ''}
     </div>
     <div class="card-author">${isUnmonitored
       ? `source: ${esc(p.marketplace || 'unknown')}`
-      : `by&nbsp;${esc(p.author)}${starInfo}${p.updateInfo?.latestCommitDate ? ` <span style="opacity:0.45;font-size:0.75em">· latest ${esc(new Date(p.updateInfo.latestCommitDate).toLocaleDateString())}</span>` : ''}`
+      : `by&nbsp;${esc(p.author)}${starInfo}`
     }</div>
     <div class="card-desc">${isUnmonitored && p.installedAt
       ? `<span style="opacity:0.5;font-size:0.75em;font-family:var(--f-mono)">installed ${esc(new Date(p.installedAt).toLocaleDateString())}${p.version ? ' · v' + esc(p.version) : ''}</span>`
@@ -1619,10 +1605,16 @@ function render() {
     }</div>
   </div>
   <div class="card-footer">
-    <div class="pop-row">
-      <div class="pop-bar-wrap"><div class="pop-bar-fill ${fillClass}" style="width:${pct}%;${fillStyle}"></div></div>
-      <div class="pop-count ${count ? 'has-data' : ''}">${count ? count + ' installs' : '—'}</div>
-    </div>
+    ${(()=>{
+      const isDisc = isEstablished || isNewPlugin;
+      const barPct = isDisc ? Math.min((p.stars || 0) / 100 * 100, 100) : pct;
+      const popTxt = isDisc ? (p.stars ? `★ ${p.stars}` : '—') : (count ? count + ' installs' : '—');
+      const popCls = (isDisc ? !!p.stars : !!count) ? 'has-data' : '';
+      return `<div class="pop-row">
+      <div class="pop-bar-wrap"><div class="pop-bar-fill ${fillClass}" style="width:${barPct}%;${fillStyle}"></div></div>
+      <div class="pop-count ${popCls}">${popTxt}</div>
+    </div>`;
+    })()}
     ${(()=>{
       const installCmd = `/plugin install ${p.name}`;
       if (p.installed) {
