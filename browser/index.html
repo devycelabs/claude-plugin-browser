@@ -1463,7 +1463,10 @@ function render() {
     p.author.toLowerCase().includes(q)
   );
 
-  if (sort === "popular") list.sort((a,b) => b.installs - a.installs);
+  if (sort === "popular") {
+    if (activeFilter === 'discovered') list.sort((a,b) => (b.stars || 0) - (a.stars || 0));
+    else                               list.sort((a,b) => b.installs - a.installs);
+  }
   else if (sort === "recently-updated") list.sort((a,b) => {
     const da = a.lastMarketplaceCommit ? new Date(a.lastMarketplaceCommit).getTime() : 0;
     const db = b.lastMarketplaceCommit ? new Date(b.lastMarketplaceCommit).getTime() : 0;
