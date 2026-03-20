@@ -191,6 +191,25 @@ function githubGet(apiPath) {
 // Alias — GitHub Contents API returns 200 with base64-encoded body, same as other endpoints
 const githubGetRaw = githubGet;
 
+// Extract "owner/repo" from a GitHub URL, or return null
+function extractGithubRepo(url) {
+  if (!url) return null;
+  const m = url.match(/github\.com\/([^/]+\/[^/?#]+?)(?:\.git)?(?:\/|$)/);
+  return m ? m[1] : null;
+}
+
+// Read the plugin.json from the local marketplace cache for an installed plugin
+function getInstalledManifest(name, mkt) {
+  if (!mkt) return null;
+  const base = path.join(PLUGINS_BASE, 'marketplaces', mkt);
+  for (const sub of ['external_plugins', 'plugins']) {
+    const manifest = safeReadJson(
+      path.join(base, sub, name, '.claude-plugin', 'plugin.json'));
+    if (manifest) return { manifest, sub };
+  }
+  return null;
+}
+
 async function checkUpdates() {
   if (!DEV_MODE && _updateCache && (Date.now() - _updateCache.fetchedAt) < UPDATE_CACHE_TTL) {
     return { ..._updateCache.data, cached: true };
@@ -207,22 +226,31 @@ async function checkUpdates() {
     const rec   = installs.reduce((a, b) =>
       new Date(a.lastUpdated) > new Date(b.lastUpdated) ? a : b);
 
-    if (mkt !== 'claude-plugins-official') {
-      // TODO: external plugin update checks
-      updates.push({ name, updateAvailable: null, reason: 'external' });
-      continue;
+    // Check the plugin's own repo first (works for any plugin with a repository field)
+    const found   = getInstalledManifest(name, mkt);
+    const ownRepo = extractGithubRepo(
+      found?.manifest?.repository || found?.manifest?.homepage);
+
+    let latest = null;
+    let source = null;
+
+    if (ownRepo) {
+      const data = await githubGet(`repos/${ownRepo}/commits?per_page=1`);
+      if (data?.length > 0) { latest = data[0]; source = 'own-repo'; }
     }
 
-    // Find which subdirectory this plugin lives in
-    let latest = null;
-    for (const sub of ['plugins', 'external_plugins']) {
-      const data = await githubGet(
-        `repos/anthropics/claude-plugins-official/commits?path=${sub}/${name}&per_page=1`);
-      if (data?.length > 0) { latest = data[0]; break; }
+    // Fall back to checking the marketplace repo entry (official plugins without their own repo)
+    if (!latest && mkt === 'claude-plugins-official') {
+      const searchSubs = found?.sub ? [found.sub] : ['plugins', 'external_plugins'];
+      for (const sub of searchSubs) {
+        const data = await githubGet(
+          `repos/anthropics/claude-plugins-official/commits?path=${sub}/${name}&per_page=1`);
+        if (data?.length > 0) { latest = data[0]; source = 'marketplace'; break; }
+      }
     }
 
     if (!latest) {
-      updates.push({ name, updateAvailable: null, reason: 'not-found' });
+      updates.push({ name, updateAvailable: null, reason: ownRepo ? 'repo-unavailable' : 'not-found' });
       continue;
     }
 
@@ -230,11 +258,12 @@ async function checkUpdates() {
     const installedDate = new Date(rec.installedAt);
     updates.push({
       name,
-      updateAvailable:    latestDate > installedDate,
-      latestCommitSha:    latest.sha.slice(0, 12),
-      latestCommitDate:   latest.commit.committer.date,
-      installedAt:        rec.installedAt,
-      installedVersion:   rec.version,
+      updateAvailable:  latestDate > installedDate,
+      source,
+      latestCommitSha:  latest.sha.slice(0, 12),
+      latestCommitDate: latest.commit.committer.date,
+      installedAt:      rec.installedAt,
+      installedVersion: rec.version,
     });
   }
 
