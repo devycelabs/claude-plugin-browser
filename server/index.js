@@ -22,7 +22,7 @@ function env(name, fallback = '') {
   return (!v || /^\$\{[^}]+\}$/.test(v)) ? fallback : v;
 }
 
-const SERVER_VERSION = '1.5.5';
+const SERVER_VERSION = '1.5.6';
 const PORT           = parseInt(env('PLUGIN_BROWSER_PORT', '3747'), 10);
 const DEV_MODE     = env('PLUGIN_BROWSER_DEV', '') === '1';
 const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
@@ -146,6 +146,31 @@ function readRootPlugin(dir, defaultType) {
   return [{ name, desc, author, type: defaultType, url, keywords }];
 }
 
+// Read plugins from a marketplace using its .claude-plugin/marketplace.json source paths
+function readFromMarketplaceJson(dir, mktUrl) {
+  const mkt = safeReadJson(path.join(dir, '.claude-plugin', 'marketplace.json'));
+  if (!mkt?.plugins?.length) return null; // signal: use fallback
+  const results = [];
+  for (const entry of mkt.plugins) {
+    if (!entry.name || !entry.source) continue;
+    const pluginDir = path.resolve(dir, entry.source);
+    const manifest  = safeReadJson(path.join(pluginDir, '.claude-plugin', 'plugin.json'));
+    const desc      = manifest?.description || entry.description || '';
+    const author    = manifest?.author?.name || mkt.owner?.name || 'unknown';
+    if (!desc) continue;
+    const explicitUrl = manifest?.repository || manifest?.homepage || manifest?.author?.url || null;
+    results.push({
+      name:     entry.name,
+      desc,
+      author,
+      type:     'added',
+      url:      explicitUrl || mktUrl || null,
+      keywords: manifest?.keywords ?? [],
+    });
+  }
+  return results;
+}
+
 function loadAddedMarketplaces() {
   const known = safeReadJson(path.join(PLUGINS_BASE, 'known_marketplaces.json'));
   const plugins = [];
@@ -154,19 +179,26 @@ function loadAddedMarketplaces() {
     const dir = info.installLocation;
     if (!dir) continue;
     const mktUrl = info.source?.repo ? `https://github.com/${info.source.repo}` : null;
-    const fromSubdirs = [
-      ...readPluginEntries(path.join(dir, 'plugins'),                  'added', mktUrl),
-      ...readPluginEntries(path.join(dir, 'external_plugins'),          'added', mktUrl),
-      ...readPluginEntries(path.join(dir, '.claude-plugin', 'plugins'), 'added', mktUrl), // dotai-style
-    ];
-    // Also try root-level single-plugin repos (no plugins/ subdir)
-    const fromRoot = fromSubdirs.length === 0 ? readRootPlugin(dir, 'added') : [];
-    const entries = [...fromSubdirs, ...fromRoot].map(p => ({
+
+    // Prefer marketplace.json source paths (authoritative, handles all layout variants)
+    const fromMktJson = readFromMarketplaceJson(dir, mktUrl);
+    let raw;
+    if (fromMktJson !== null) {
+      raw = fromMktJson;
+    } else {
+      // Fallback: scan well-known subdirectory layouts
+      const fromSubdirs = [
+        ...readPluginEntries(path.join(dir, 'plugins'),                  'added', mktUrl),
+        ...readPluginEntries(path.join(dir, 'external_plugins'),          'added', mktUrl),
+      ];
+      raw = fromSubdirs.length === 0 ? readRootPlugin(dir, 'added') : fromSubdirs;
+    }
+
+    plugins.push(...raw.map(p => ({
       ...p,
       marketplace:     mktName,
       marketplaceRepo: info.source?.repo ?? null,
-    }));
-    plugins.push(...entries);
+    })));
   }
   return { plugins, fetchedAt: new Date().toISOString(), pluginCount: plugins.length };
 }
