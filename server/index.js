@@ -211,7 +211,7 @@ function githubGet(apiPath) {
     const req = https.get({
       hostname: 'api.github.com',
       path: '/' + apiPath,
-      headers: { 'User-Agent': 'plugin-browser/1.4.2',
+      headers: { 'User-Agent': 'plugin-browser/1.4.3',
                  'Accept': 'application/vnd.github.v3+json' },
     }, res => {
       const chunks = [];
@@ -447,16 +447,38 @@ const httpServer = http.createServer((req, res) => {
 // Ensure fonts are cached in the correct PLUGIN_DATA dir (best-effort, non-blocking)
 ensureFonts(PLUGIN_DATA).catch(() => {});
 
-httpServer.listen(PORT, '127.0.0.1', () => {
-  // Only log when run standalone (not as MCP server via stdio)
-  if (process.stdin.isTTY) {
-    console.log(`\n  Plugin Browser  →  http://localhost:${PORT}\n`);
-  }
-});
+// Kill any stale process on PORT before binding, so updated code always wins.
+function killStaleServer(port, cb) {
+  const { execSync } = require('child_process');
+  try {
+    if (process.platform === 'win32') {
+      const out = execSync('netstat -ano', { encoding: 'utf8', stdio: ['ignore','pipe','ignore'] });
+      for (const line of out.split('\n')) {
+        if (line.includes(`:${port} `) && line.includes('LISTENING')) {
+          const pid = line.trim().split(/\s+/).pop();
+          if (pid && /^\d+$/.test(pid) && pid !== '0') {
+            try { execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' }); } catch {}
+          }
+        }
+      }
+    } else {
+      const pids = execSync(`lsof -ti tcp:${port}`, { encoding: 'utf8', stdio: ['ignore','pipe','ignore'] }).trim().split('\n').filter(Boolean);
+      for (const pid of pids) { try { execSync(`kill -9 ${pid}`, { stdio: 'ignore' }); } catch {} }
+    }
+  } catch { /* port was free */ }
+  setTimeout(cb, 200); // brief pause for OS to release the port
+}
 
-httpServer.on('error', err => {
-  if (err.code !== 'EADDRINUSE') console.error('HTTP server error:', err.message);
-  // If port is taken, HTTP is probably already running — MCP still works fine
+killStaleServer(PORT, () => {
+  httpServer.listen(PORT, '127.0.0.1', () => {
+    if (process.stdin.isTTY) {
+      console.log(`\n  Plugin Browser  →  http://localhost:${PORT}\n`);
+    }
+  });
+
+  httpServer.on('error', err => {
+    if (err.code !== 'EADDRINUSE') console.error('HTTP server error:', err.message);
+  });
 });
 
 // ── MCP server (stdio) ───────────────────────────────────────
@@ -496,7 +518,7 @@ function handleMcp(msg) {
     return mcpSend({ jsonrpc: '2.0', id, result: {
       protocolVersion: '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: 'plugin-browser', version: '1.4.2' },
+      serverInfo: { name: 'plugin-browser', version: '1.4.3' },
     }});
   }
 
