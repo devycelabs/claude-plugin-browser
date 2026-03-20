@@ -1403,7 +1403,11 @@ function render() {
         return `<div class="install-cmd installed-cmd" onclick="copyCmd('${esc(installCmd)}')" title="Click to copy"><span class="prompt">✓</span>${esc(installCmd)}</div>`;
       }
       const mktRepo = isEstablished || isNewPlugin ? p.repo : isCommunity ? p.marketplace : null;
-      if (mktRepo && !liveMarketplaces?.some(m => m.name === mktRepo.replace('/', '-'))) {
+      const mktAdded = mktRepo && liveMarketplaces?.some(m => {
+        const slug = mktRepo.replace('/', '-');
+        return m.name === slug || m.name === mktRepo.split('/')[1] || slug.endsWith('-' + m.name) || slug.startsWith(m.name + '-');
+      });
+      if (mktRepo && !mktAdded) {
         const addCmd = `/plugin marketplace add ${mktRepo}`;
         const both   = `${addCmd}\n${installCmd}`;
         return `<div class="install-cmd install-cmd-multi" onclick="copyCmd('${esc(both)}')" title="Click to copy both commands">
