@@ -22,7 +22,7 @@ function env(name, fallback = '') {
   return (!v || /^\$\{[^}]+\}$/.test(v)) ? fallback : v;
 }
 
-const SERVER_VERSION = '1.5.6';
+const SERVER_VERSION = '1.5.7';
 const PORT           = parseInt(env('PLUGIN_BROWSER_PORT', '3747'), 10);
 const DEV_MODE     = env('PLUGIN_BROWSER_DEV', '') === '1';
 const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
@@ -146,13 +146,20 @@ function readRootPlugin(dir, defaultType) {
   return [{ name, desc, author, type: defaultType, url, keywords }];
 }
 
-// Read plugins from a marketplace using its .claude-plugin/marketplace.json source paths
+// Read plugins from a marketplace using its .claude-plugin/marketplace.json source paths.
+// Returns array if marketplace.json was usable, null to signal caller should use fallback.
 function readFromMarketplaceJson(dir, mktUrl) {
   const mkt = safeReadJson(path.join(dir, '.claude-plugin', 'marketplace.json'));
-  if (!mkt?.plugins?.length) return null; // signal: use fallback
+  if (!mkt?.plugins) return null;
+  if (mkt.plugins.length === 0) return []; // explicitly empty — no fallback needed
+
   const results = [];
+  let hasLocalSources = false;
   for (const entry of mkt.plugins) {
-    if (!entry.name || !entry.source) continue;
+    if (!entry.name) continue;
+    // Only handle string sources (local relative paths); object sources (e.g. URL refs) can't be resolved locally
+    if (typeof entry.source !== 'string') continue;
+    hasLocalSources = true;
     const pluginDir = path.resolve(dir, entry.source);
     const manifest  = safeReadJson(path.join(pluginDir, '.claude-plugin', 'plugin.json'));
     const desc      = manifest?.description || entry.description || '';
@@ -164,10 +171,12 @@ function readFromMarketplaceJson(dir, mktUrl) {
       desc,
       author,
       type:     'added',
-      url:      explicitUrl || mktUrl || null,
+      url:      explicitUrl || entry.homepage || mktUrl || null,
       keywords: manifest?.keywords ?? [],
     });
   }
+  // All entries had non-local sources → fall back to directory scan / root-plugin check
+  if (!hasLocalSources) return null;
   return results;
 }
 
