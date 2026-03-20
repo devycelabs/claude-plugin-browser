@@ -1310,7 +1310,7 @@ function render() {
                       : `stripe-${esc(p.type)}`;
 
     const typeLabel = isCommunity ? 'community'
-                    : p.type === 'external' ? 'MCP' : p.type.toUpperCase();
+                    : p.type === 'external' ? 'MCP' : p.type?.toUpperCase() ?? '';
 
     // safe URL: allow http/https only
     const safeUrl = p.url && /^https?:\/\//.test(p.url) ? p.url : '';
