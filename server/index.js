@@ -124,7 +124,7 @@ let _communityCache = null;
 const DISCOVERED_CACHE_FILE = path.join(PLUGIN_DATA, 'discovered-plugins.json');
 const DISCOVERED_CACHE_TTL  = 7 * 24 * 60 * 60 * 1000; // 7 days
 const DISCOVERED_DATA_URL   =
-  'repos/devycelabs/claude-plugin-browser/contents/data/discovered.json';
+  'repos/devycelabs/claude-plugin-browser-data/contents/discovered.json';
 
 async function fetchCommunityRegistry() {
   if (!DEV_MODE && _communityCache && (Date.now() - _communityCache.fetchedAt) < COMMUNITY_CACHE_TTL) {
@@ -211,7 +211,7 @@ function githubGet(apiPath) {
     const req = https.get({
       hostname: 'api.github.com',
       path: '/' + apiPath,
-      headers: { 'User-Agent': 'plugin-browser/1.3.9',
+      headers: { 'User-Agent': 'plugin-browser/1.4.0',
                  'Accept': 'application/vnd.github.v3+json' },
     }, res => {
       const chunks = [];
@@ -496,7 +496,7 @@ function handleMcp(msg) {
     return mcpSend({ jsonrpc: '2.0', id, result: {
       protocolVersion: '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: 'plugin-browser', version: '1.3.9' },
+      serverInfo: { name: 'plugin-browser', version: '1.4.0' },
     }});
   }
 
