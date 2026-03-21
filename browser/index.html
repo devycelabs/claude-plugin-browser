@@ -1506,7 +1506,7 @@ function render() {
     const dateStr = discoveredGeneratedAt
       ? new Date(discoveredGeneratedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
       : 'unknown';
-    return `<div class="discovered-freshness-row">🔭 Found via GitHub Code Search · updated weekly via GitHub Actions (Sundays UTC) · last run: ${dateStr}</div>`;
+    return `<div class="discovered-freshness-row">🔭 Found via GitHub Code Search · updated twice weekly via GitHub Actions (Sundays &amp; Wednesdays UTC) · last run: ${dateStr}</div>`;
   })() : '';
 
   grid.innerHTML = freshnessRow + list.map((p, i) => {
