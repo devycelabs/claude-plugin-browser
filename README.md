@@ -41,6 +41,21 @@ node server/index.js
 
 Or open `browser/index.html` directly — works offline with embedded fallback data.
 
+## Configuration
+
+The server respects the following environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PLUGIN_BROWSER_PORT` | `3747` | HTTP port the browser UI listens on |
+| `PLUGIN_BROWSER_DEV` | _(unset)_ | Set to `1` to enable dev mode (serves `browser/index.html` from disk on every request instead of caching) |
+| `CLAUDE_PLUGIN_DATA` | `~/.claude/plugins/data/plugin-browser` | Override the data/cache directory used by the server |
+
+Example — run on a different port:
+```bash
+PLUGIN_BROWSER_PORT=4000 node server/index.js
+```
+
 ## How it works
 
 The plugin ships a combined server (`server/index.js`) that:

@@ -542,7 +542,7 @@ const TOOLS = [
   },
   {
     name: 'open_browser',
-    description: 'Open the plugin browser UI at http://localhost:3747 in the default browser.',
+    description: `Open the plugin browser UI at http://localhost:${PORT} in the default browser.`,
     inputSchema: { type: 'object', properties: {}, required: [] },
   },
   {
