@@ -1,7 +1,7 @@
 {
   "name": "plugin-browser",
   "version": "1.5.12",
-  "description": "Local web UI for browsing the official Claude Code plugin marketplace. Shows install counts, installed status, and one-click copy of install commands.",
+  "description": "Claude Scout — local web UI for discovering and browsing Claude Code plugins. Shows install counts, installed status, marketplace sources, and one-click copy of install commands.",
   "author": {
     "name": "Devyce Labs",
     "email": "devycelabs@users.noreply.github.com",
@@ -10,5 +10,5 @@
   "homepage": "https://github.com/devycelabs/claude-plugin-browser",
   "repository": "https://github.com/devycelabs/claude-plugin-browser",
   "license": "MIT",
-  "keywords": ["plugins", "marketplace", "browser", "discovery", "mcp", "ui"]
+  "keywords": ["plugins", "marketplace", "browser", "discovery", "mcp", "ui", "scout"]
 }

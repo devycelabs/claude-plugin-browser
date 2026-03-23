@@ -260,7 +260,7 @@ function githubGet(apiPath) {
     const req = https.get({
       hostname: 'api.github.com',
       path: '/' + apiPath,
-      headers: { 'User-Agent': `plugin-browser/${SERVER_VERSION}`,
+      headers: { 'User-Agent': `claude-scout/${SERVER_VERSION}`,
                  'Accept': 'application/vnd.github.v3+json' },
     }, res => {
       const chunks = [];
@@ -569,7 +569,7 @@ function handleMcp(msg) {
     return mcpSend({ jsonrpc: '2.0', id, result: {
       protocolVersion: '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: 'plugin-browser', version: SERVER_VERSION },
+      serverInfo: { name: 'claude-scout', version: SERVER_VERSION },
     }});
   }
 
