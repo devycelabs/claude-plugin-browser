@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "devycelabs-claude-scout",
+  "name": "devycelabs-claude-plugin-browser",
   "description": "Claude Scout — discover and browse Claude Code plugins from the official marketplace and beyond",
   "owner": {
     "name": "Devyce Labs",
