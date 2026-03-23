@@ -1400,10 +1400,13 @@ function render() {
   if (activeFilter === 'discovered') {
     let established = discoveredPlugins?.established ?? [];
     let newPlugins  = discoveredPlugins?.new ?? [];
-    // Apply 30-day recency filter
+    // Apply 30-day recency filter — use repo creation date (not marketplace commit date)
     if (showNew30d) {
       const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-      const recent = p => p.lastMarketplaceCommit && new Date(p.lastMarketplaceCommit).getTime() >= cutoff;
+      const recent = p => {
+        const d = p.repoCreatedAt || p.lastMarketplaceCommit;
+        return d && new Date(d).getTime() >= cutoff;
+      };
       established = established.filter(recent);
       newPlugins  = newPlugins.filter(recent);
     }
