@@ -131,7 +131,7 @@ const https = require('https');
 const DISCOVERED_CACHE_FILE = path.join(PLUGIN_DATA, 'discovered-plugins.json');
 const DISCOVERED_CACHE_TTL  = 7 * 24 * 60 * 60 * 1000; // 7 days
 const DISCOVERED_DATA_URL   =
-  'repos/devycelabs/claude-plugin-browser-data/contents/discovered.json';
+  'repos/devycelabs/claude-scout-data/contents/discovered.json';
 
 // Read a single-plugin marketplace (plugin.json lives at repo root, not inside plugins/)
 function readRootPlugin(dir, defaultType) {
