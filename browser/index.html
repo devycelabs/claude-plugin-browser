@@ -931,7 +931,7 @@ html { transition: background 0.25s, color 0.25s; }
     <button class="filter-btn f-installed"         onclick="setFilter('installed',this)">Installed</button>
     <button class="filter-btn f-added" id="added-tab" onclick="setFilter('added',this)" style="display:none">Added <span id="added-count"></span></button>
     <button class="filter-btn f-unmonitored" id="unmonitored-tab" onclick="setFilter('unmonitored',this)" style="display:none">Unmonitored <span id="unmonitored-count"></span></button>
-    <button class="filter-btn f-discovered" id="discovered-tab" onclick="setFilter('discovered',this)" style="display:none">Discovered <span id="discovered-count"></span></button>
+    <button class="filter-btn f-discovered" id="discovered-tab" onclick="setFilter('discovered',this)" style="display:none">Plugins <span id="discovered-count"></span></button>
     <button class="filter-btn f-ignored" id="ignored-chip" onclick="toggleHideIgnored()" style="display:none">— ignored <span id="ignored-count"></span></button>
   </div>
   <div class="sort-wrap">
@@ -1537,7 +1537,7 @@ function render() {
       : '';
 
     const typeBadge = isEstablished
-      ? '<span class="discovered-badge">discovered</span>'
+      ? '<span class="discovered-badge">plugin</span>'
       : isNewPlugin
       ? '<span class="new-plugin-badge">unverified</span>'
       : isAdded
@@ -1560,7 +1560,9 @@ function render() {
 
     // Section dividers
     let divider = '';
-    if (isDiscovered && i === establishedCount && establishedCount > 0 && list.length > establishedCount) {
+    if (isDiscovered && i === 0 && establishedCount > 0) {
+      divider = `<div class="section-divider">Established — 5+ stars</div>`;
+    } else if (isDiscovered && i === establishedCount && establishedCount > 0 && list.length > establishedCount) {
       divider = `<div class="section-divider">New &amp; Unverified — 1–4 stars</div>`;
     } else if (isAddedTab && (i === 0 || list[i - 1].marketplace !== p.marketplace)) {
       const mkt     = p.marketplace || 'unknown';
