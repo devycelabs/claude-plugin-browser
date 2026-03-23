@@ -818,6 +818,10 @@ html { transition: background 0.25s, color 0.25s; }
 }
 .kw-chip:hover { color: #38bdf8; border-color: #38bdf8; }
 .kw-chip.active { background: #38bdf8; color: #051a2e; border-color: #38bdf8; }
+/* New·30d chip — amber accent to stand out from keyword chips */
+.new30d-chip { color: var(--c-amber); border-color: rgba(232,147,10,0.3); }
+.new30d-chip:hover { color: var(--c-amber); border-color: var(--c-amber); }
+.new30d-chip.active { background: var(--c-amber); color: #1a0800; border-color: var(--c-amber); }
 /* Purple overrides for Added tab */
 .added-kf .kw-chip { border-color: rgba(167,139,250,0.25); color: rgba(167,139,250,0.65); }
 .added-kf .kw-chip:hover { color: #a78bfa; border-color: #a78bfa; }
@@ -1076,6 +1080,7 @@ let addedPlugins        = null; // fetched from /api/added (user-added marketpla
 let discoveredPlugins        = null; // { established: [...], new: [...] } after fetch
 let discoveredGeneratedAt   = null; // ISO date string from crawl metadata
 let activeKeywords      = new Set(); // active keyword sub-filters (Discovered tab)
+let showNew30d          = false;     // Plugins tab: only show plugins active in last 30 days
 let ignoredPlugins      = new Set(JSON.parse(localStorage.getItem('pluginBrowserIgnored') || '[]'));
 let hideIgnored         = false;
 let lastSynced          = null;
@@ -1159,6 +1164,12 @@ function toggleKeyword(kw) {
   render();
 }
 
+function toggleNew30d() {
+  showNew30d = !showNew30d;
+  updateKeywordFilterRow();
+  render();
+}
+
 function updateKeywordFilterRow() {
   const row = document.getElementById('keyword-filter-row');
   const isDisc  = activeFilter === 'discovered';
@@ -1176,10 +1187,13 @@ function updateKeywordFilterRow() {
 
   row.className = isAdded ? 'added-kf' : '';
   row.style.display = 'flex';
-  const clearBtn = activeKeywords.size
-    ? `<button class="kf-clear" onclick="activeKeywords.clear();updateKeywordFilterRow();render()">clear</button>`
+  const new30dChip = isDisc
+    ? `<button class="kw-chip new30d-chip${showNew30d ? ' active' : ''}" onclick="toggleNew30d()">🆕 new · 30d</button>`
     : '';
-  row.innerHTML = `<span class="kf-label">Filter</span>` +
+  const clearBtn = (activeKeywords.size || showNew30d)
+    ? `<button class="kf-clear" onclick="activeKeywords.clear();showNew30d=false;updateKeywordFilterRow();render()">clear</button>`
+    : '';
+  row.innerHTML = `<span class="kf-label">Filter</span>` + new30dChip +
     keywords.map(({ kw, count }) =>
       `<button class="kw-chip${activeKeywords.has(kw) ? ' active' : ''}" onclick="toggleKeyword('${esc(kw)}')">${esc(kw)}<span class="kw-count">${count}</span></button>`
     ).join('') + clearBtn +
@@ -1359,7 +1373,7 @@ function setFilter(f, btn) {
   // Show "Recently updated" sort only on Discovered tab
   const recentOpt = document.getElementById('sort-recently-updated');
   if (recentOpt) recentOpt.style.display = f === 'discovered' ? '' : 'none';
-  if (f !== 'discovered' && f !== 'added') { activeKeywords.clear(); }
+  if (f !== 'discovered' && f !== 'added') { activeKeywords.clear(); showNew30d = false; }
   updateKeywordFilterRow();
   render();
 }
@@ -1386,6 +1400,13 @@ function render() {
   if (activeFilter === 'discovered') {
     let established = discoveredPlugins?.established ?? [];
     let newPlugins  = discoveredPlugins?.new ?? [];
+    // Apply 30-day recency filter
+    if (showNew30d) {
+      const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const recent = p => p.lastMarketplaceCommit && new Date(p.lastMarketplaceCommit).getTime() >= cutoff;
+      established = established.filter(recent);
+      newPlugins  = newPlugins.filter(recent);
+    }
     // Apply keyword sub-filters
     if (activeKeywords.size) {
       const kf = kw => (kw.keywords ?? []).some(k => activeKeywords.has(k));
