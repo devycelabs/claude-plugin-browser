@@ -1,21 +1,21 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "devycelabs-claude-plugin-browser",
-  "description": "Plugin Browser for Claude Code — browse, filter, and install from the official marketplace",
+  "name": "devycelabs-claude-scout",
+  "description": "Claude Scout — discover and browse Claude Code plugins from the official marketplace and beyond",
   "owner": {
     "name": "Devyce Labs",
     "email": "devycelabs@users.noreply.github.com"
   },
   "plugins": [
     {
-      "name": "plugin-browser",
-      "description": "Local web UI for browsing the official Claude Code plugin marketplace. Shows install counts, installed status, update availability, and one-click copy of install commands.",
+      "name": "claude-scout",
+      "description": "Claude Scout — local web UI for discovering and browsing Claude Code plugins. Shows install counts, installed status, marketplace sources, and one-click copy of install commands.",
       "category": "productivity",
       "source": {
         "source": "url",
-        "url": "https://github.com/devycelabs/claude-plugin-browser.git"
+        "url": "https://github.com/devycelabs/claude-scout.git"
       },
-      "homepage": "https://github.com/devycelabs/claude-plugin-browser"
+      "homepage": "https://github.com/devycelabs/claude-scout"
     }
   ]
 }
