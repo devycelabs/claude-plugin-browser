@@ -31,7 +31,7 @@ const MKT_DIR      = path.join(PLUGINS_BASE, 'marketplaces', MARKETPLACE);
 const BROWSER_HTML = path.join(__dirname, '..', 'browser', 'index.html');
 const LICENSE_FILE = path.join(__dirname, '..', 'LICENSE');
 const PRIVACY_FILE = path.join(__dirname, '..', 'PRIVACY.md');
-const PLUGIN_DATA  = env('CLAUDE_PLUGIN_DATA') || path.join(PLUGINS_BASE, 'data', 'plugin-browser');
+const PLUGIN_DATA  = env('CLAUDE_PLUGIN_DATA') || path.join(PLUGINS_BASE, 'data', 'claude-scout');
 const FONTS_DIR    = path.join(PLUGIN_DATA, 'fonts');
 
 // ── Plugin data ──────────────────────────────────────────────
@@ -111,7 +111,7 @@ function loadData() {
   }));
 
   // Detect stale server: compare running version against what's installed
-  const pbKey = Object.keys(installedRaw?.plugins ?? {}).find(k => k.startsWith('plugin-browser@'));
+  const pbKey = Object.keys(installedRaw?.plugins ?? {}).find(k => k.startsWith('claude-scout@'));
   const pbInstalls = pbKey ? (installedRaw.plugins[pbKey] ?? []) : [];
   const pbLatest   = pbInstalls.length
     ? pbInstalls.reduce((a, b) => new Date(a.lastUpdated) > new Date(b.lastUpdated) ? a : b)
@@ -131,7 +131,7 @@ const https = require('https');
 const DISCOVERED_CACHE_FILE = path.join(PLUGIN_DATA, 'discovered-plugins.json');
 const DISCOVERED_CACHE_TTL  = 7 * 24 * 60 * 60 * 1000; // 7 days
 const DISCOVERED_DATA_URL   =
-  'repos/devycelabs/claude-scout-data/contents/discovered.json';
+  'repos/devycelabs/claude-plugin-browser-data/contents/discovered.json';
 
 // Read a single-plugin marketplace (plugin.json lives at repo root, not inside plugins/)
 function readRootPlugin(dir, defaultType) {
