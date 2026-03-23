@@ -886,6 +886,60 @@ html { transition: background 0.25s, color 0.25s; }
 .filter-btn.f-ignored:hover { color: #666; border-color: #3a3840; }
 .filter-btn.f-ignored.hide-active { color: #888; border-color: #3a3840; background: #18161e; text-decoration: line-through; }
 
+/* ── Tools tab ───────────────────────────────────────────── */
+.filter-btn.active.f-tools { background: var(--c-scout); border-color: var(--c-scout); color: #001a0d; }
+.filter-btn.f-tools { color: var(--c-scout); border-color: rgba(52,211,153,0.3); }
+.stripe-tools     { background: var(--c-scout); }
+.stripe-tools-dim { background: rgba(52,211,153,0.35); }
+.type-tools { color: var(--c-scout); }
+.fill-tools { background: var(--c-scout); }
+.tools-freshness-row {
+  grid-column: 1 / -1;
+  padding: 6px 20px;
+  font-family: var(--f-mono);
+  font-size: 0.57rem;
+  letter-spacing: 0.06em;
+  color: rgba(52,211,153,0.3);
+  border-bottom: 1px solid rgba(52,211,153,0.08);
+}
+.section-divider.tools-divider {
+  color: rgba(52,211,153,0.5);
+  border-bottom: 1px solid rgba(52,211,153,0.12);
+  background: rgba(52,211,153,0.03);
+}
+.topic-pills { margin-top: 5px; }
+.topic-pill {
+  display: inline-block;
+  font-family: var(--f-mono);
+  font-size: 0.56rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(52,211,153,0.2);
+  background: rgba(52,211,153,0.06);
+  color: rgba(52,211,153,0.6);
+  letter-spacing: 0.03em;
+  margin: 0 2px 2px 0;
+  line-height: 1.6;
+}
+.install-hint {
+  color: var(--c-scout);
+  border-color: rgba(52,211,153,0.25);
+  opacity: 0.85;
+}
+.install-hint:hover { opacity: 1; border-color: rgba(52,211,153,0.5); }
+.view-on-github {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 0.62rem;
+  color: rgba(52,211,153,0.65);
+  text-decoration: none;
+  padding: 5px 10px;
+  border: 1px solid rgba(52,211,153,0.2);
+  border-radius: 4px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.view-on-github:hover { color: var(--c-scout); border-color: rgba(52,211,153,0.5); }
+
 /* ── Page footer ─────────────────────────────────────────── */
 .page-footer {
   text-align: center;
@@ -937,6 +991,7 @@ html { transition: background 0.25s, color 0.25s; }
     <button class="filter-btn f-added" id="added-tab" onclick="setFilter('added',this)" style="display:none">Added <span id="added-count"></span></button>
     <button class="filter-btn f-unmonitored" id="unmonitored-tab" onclick="setFilter('unmonitored',this)" style="display:none">Unmonitored <span id="unmonitored-count"></span></button>
     <button class="filter-btn f-discovered" id="discovered-tab" onclick="setFilter('discovered',this)" style="display:none">Plugins <span id="discovered-count"></span></button>
+    <button class="filter-btn f-tools" id="tools-tab" onclick="setFilter('tools',this)" style="display:none">Tools <span id="tools-count"></span></button>
     <button class="filter-btn f-ignored" id="ignored-chip" onclick="toggleHideIgnored()" style="display:none">— ignored <span id="ignored-count"></span></button>
   </div>
   <div class="sort-wrap">
@@ -1081,7 +1136,9 @@ let addedPlugins        = null; // fetched from /api/added (user-added marketpla
 let discoveredPlugins        = null; // { established: [...], new: [...] } after fetch
 let discoveredGeneratedAt   = null; // ISO date string from crawl metadata
 let activeKeywords      = new Set(); // active keyword sub-filters (Discovered tab)
-let showNew30d          = false;     // Plugins tab: only show plugins active in last 30 days
+let showNew30d          = false;     // Plugins/Tools tab: only show items created in last 30 days
+let toolsData          = null;      // { _raw, established, new }
+let toolsGeneratedAt   = null;
 let ignoredPlugins      = new Set(JSON.parse(localStorage.getItem('pluginBrowserIgnored') || '[]'));
 let hideIgnored         = false;
 let lastSynced          = null;
@@ -1144,6 +1201,20 @@ function updateRestartBanner(data) {
 }
 
 // ── Keyword sub-filters ──────────────────────────────────────
+function buildTopicCounts(source, minCount = 1) {
+  const counts = {};
+  for (const t of (source ?? [])) {
+    for (const topic of (t.topics ?? [])) {
+      if (topic) counts[topic] = (counts[topic] || 0) + 1;
+    }
+  }
+  return Object.entries(counts)
+    .filter(([, count]) => count >= minCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 24)
+    .map(([kw, count]) => ({ kw, count }));
+}
+
 function buildKeywordCounts(source, minCount = 1) {
   const counts = {};
   for (const p of (source ?? [])) {
@@ -1175,20 +1246,22 @@ function updateKeywordFilterRow() {
   const row = document.getElementById('keyword-filter-row');
   const isDisc  = activeFilter === 'discovered';
   const isAdded = activeFilter === 'added';
+  const isTools = activeFilter === 'tools';
 
-  if (isDisc && !discoveredPlugins) { row.style.display = 'none'; return; }
-  if (isAdded && !addedPlugins)     { row.style.display = 'none'; return; }
-  if (!isDisc && !isAdded)          { row.style.display = 'none'; return; }
+  if (isDisc  && !discoveredPlugins) { row.style.display = 'none'; return; }
+  if (isAdded && !addedPlugins)      { row.style.display = 'none'; return; }
+  if (isTools && !toolsData)         { row.style.display = 'none'; return; }
+  if (!isDisc && !isAdded && !isTools) { row.style.display = 'none'; return; }
 
-  const keywords = isDisc
-    ? buildKeywordCounts(discoveredPlugins._raw, 4)
-    : buildKeywordCounts(addedPlugins, 1); // no min-count for added
+  const keywords = isDisc  ? buildKeywordCounts(discoveredPlugins._raw, 4)
+                 : isTools ? buildTopicCounts(toolsData._raw, 2)
+                 :           buildKeywordCounts(addedPlugins, 1);
 
   if (!keywords.length) { row.style.display = 'none'; return; }
 
   row.className = isAdded ? 'added-kf' : '';
   row.style.display = 'flex';
-  const new30dChip = isDisc
+  const new30dChip = (isDisc || isTools)
     ? `<button class="kw-chip new30d-chip${showNew30d ? ' active' : ''}" onclick="toggleNew30d()">🆕 new · 30d</button>`
     : '';
   const clearBtn = (activeKeywords.size || showNew30d)
@@ -1295,6 +1368,26 @@ function applyDiscoveredDedup() {
   }
 }
 
+function applyToolsData() {
+  if (!toolsData) return;
+  const all = toolsData._raw ?? [];
+  toolsData = {
+    _raw:        all,
+    established: all.filter(t => t.tier === 'established'),
+    new:         all.filter(t => t.tier === 'new'),
+  };
+  const total = toolsData.established.length + toolsData.new.length;
+  const tab   = document.getElementById('tools-tab');
+  const cnt   = document.getElementById('tools-count');
+  if (total > 0) {
+    cnt.textContent   = `(${total})`;
+    tab.style.display = '';
+  } else {
+    tab.style.display = 'none';
+    if (activeFilter === 'tools') setFilter('all', document.querySelector('.filter-btn.f-all'));
+  }
+}
+
 async function fetchDiscoveredPlugins() {
   const discoverUrl = API.replace('/api/plugins', '/api/discover');
   try {
@@ -1309,6 +1402,12 @@ async function fetchDiscoveredPlugins() {
     // Store raw then dedup
     discoveredPlugins = { _raw: raw, established: [], new: [] };
     applyDiscoveredDedup();
+    const rawTools = data.tools ?? [];
+    if (rawTools.length) {
+      toolsGeneratedAt = data.generatedAt ?? null;
+      toolsData = { _raw: rawTools, established: [], new: [] };
+      applyToolsData();
+    }
     updateKeywordFilterRow();
     render();
   } catch { /* best-effort */ }
@@ -1371,10 +1470,10 @@ function setFilter(f, btn) {
   activeFilter = f;
   document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
-  // Show "Recently updated" sort only on Discovered tab
+  // Show "Recently updated" sort on Discovered and Tools tabs
   const recentOpt = document.getElementById('sort-recently-updated');
-  if (recentOpt) recentOpt.style.display = f === 'discovered' ? '' : 'none';
-  if (f !== 'discovered' && f !== 'added') { activeKeywords.clear(); showNew30d = false; }
+  if (recentOpt) recentOpt.style.display = (f === 'discovered' || f === 'tools') ? '' : 'none';
+  if (f !== 'discovered' && f !== 'added' && f !== 'tools') { activeKeywords.clear(); showNew30d = false; }
   updateKeywordFilterRow();
   render();
 }
@@ -1445,6 +1544,45 @@ function render() {
       installed: activeInstalled().includes(p.name),
       hasUpdate: false,
     }));
+  } else if (activeFilter === 'tools') {
+    let established = toolsData?.established ?? [];
+    let newTools    = toolsData?.new ?? [];
+    if (showNew30d) {
+      const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const recent = t => t.repoCreatedAt && new Date(t.repoCreatedAt).getTime() >= cutoff;
+      established = established.filter(recent);
+      newTools    = newTools.filter(recent);
+    }
+    if (activeKeywords.size) {
+      const tf = t => (t.topics ?? []).some(k => activeKeywords.has(k));
+      established = established.filter(tf);
+      newTools    = newTools.filter(tf);
+    }
+    if (sort === 'popular') {
+      const byStars = (a, b) => (b.stars || 0) - (a.stars || 0);
+      established = [...established].sort(byStars);
+      newTools    = [...newTools].sort(byStars);
+    } else if (sort === 'recently-updated') {
+      const byDate = (a, b) => {
+        const da = a.repoUpdatedAt ? new Date(a.repoUpdatedAt).getTime() : 0;
+        const db = b.repoUpdatedAt ? new Date(b.repoUpdatedAt).getTime() : 0;
+        return db - da;
+      };
+      established = [...established].sort(byDate);
+      newTools    = [...newTools].sort(byDate);
+    } else {
+      const byName = (a, b) => a.name.localeCompare(b.name);
+      established = [...established].sort(byName);
+      newTools    = [...newTools].sort(byName);
+    }
+    list = [...established, ...newTools].map(t => ({
+      ...t,
+      url:       t.repoUrl,
+      installs:  0,
+      installed: false,
+      hasUpdate: false,
+      _isTool:   true,
+    }));
   } else if (activeFilter === 'unmonitored') {
     list = unmonitored;
   } else if (activeFilter === 'added') {
@@ -1497,13 +1635,16 @@ function render() {
   // Stats — total pool varies by active tab
   const addedExtras = addedPlugins?.filter(p => !new Set(activePlugins().map(q => q.name)).has(p.name)).length ?? 0;
   const discoveredTotal = (discoveredPlugins?.established?.length ?? 0) + (discoveredPlugins?.new?.length ?? 0);
+  const toolsTotal      = (toolsData?.established?.length ?? 0) + (toolsData?.new?.length ?? 0);
   const totalPool = activeFilter === 'added'       ? (addedPlugins?.length ?? 0)
                   : activeFilter === 'unmonitored' ? unmonitored.length
                   : activeFilter === 'discovered'  ? discoveredTotal
+                  : activeFilter === 'tools'       ? toolsTotal
                   : activePlugins().length + (activeFilter === 'all' || activeFilter === 'installed' ? addedExtras : 0);
   const visibleCount = list.length + ignoredList.length;
+  const itemLabel = activeFilter === 'tools' ? 'tools' : 'plugins';
   document.getElementById("stats").innerHTML =
-    `<em>${visibleCount}</em> of <em>${totalPool}</em> plugins`;
+    `<em>${visibleCount}</em> of <em>${totalPool}</em> ${itemLabel}`;
   document.getElementById("header-count").textContent = visibleCount;
 
   // Grid
@@ -1514,11 +1655,12 @@ function render() {
     return;
   }
 
-  // For discovered tab: split list back into tiers to render divider
+  // For discovered/tools tabs: split list back into tiers to render divider
   const isDiscovered = activeFilter === 'discovered';
+  const isToolsTab   = activeFilter === 'tools';
   const isAddedTab   = activeFilter === 'added';
-  // After keyword filtering, count how many in list are established tier
-  const establishedCount = isDiscovered
+  // After keyword/topic filtering, count how many in list are established tier
+  const establishedCount = (isDiscovered || isToolsTab)
     ? list.filter(p => p.tier === 'established').length
     : 0;
   // Pre-compute per-marketplace plugin counts for Added tab dividers
@@ -1532,6 +1674,11 @@ function render() {
       ? new Date(discoveredGeneratedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
       : 'unknown';
     return `<div class="discovered-freshness-row">🔭 Found via GitHub Code Search · updated twice weekly via GitHub Actions (Sundays &amp; Wednesdays UTC) · last run: ${dateStr}</div>`;
+  })() : isToolsTab ? (() => {
+    const dateStr = toolsGeneratedAt
+      ? new Date(toolsGeneratedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+      : 'unknown';
+    return `<div class="tools-freshness-row">🔧 MCP tools found via GitHub topic search (mcp-server · claude-code) · updated weekly · last run: ${dateStr}</div>`;
   })() : '';
 
   grid.innerHTML = freshnessRow + list.map((p, i) => {
@@ -1539,13 +1686,17 @@ function render() {
     const pct    = popPct(p.installs);
     const delay  = Math.min(i * 28, 500);
 
-    const isAdded       = p.type === 'added';
-    const isUnmonitored = p.type === 'unmonitored';
-    const isEstablished = isDiscovered && i < establishedCount;
-    const isNewPlugin   = isDiscovered && i >= establishedCount;
+    const isAdded           = p.type === 'added';
+    const isUnmonitored     = p.type === 'unmonitored';
+    const isEstablished     = isDiscovered && i < establishedCount;
+    const isNewPlugin       = isDiscovered && i >= establishedCount;
+    const isToolEstablished = isToolsTab && i < establishedCount;
+    const isToolNew         = isToolsTab && i >= establishedCount;
 
-    const stripeClass = isEstablished ? 'stripe-discovered'
-                      : isNewPlugin   ? 'stripe-new-plugin'
+    const stripeClass = isEstablished     ? 'stripe-discovered'
+                      : isNewPlugin       ? 'stripe-new-plugin'
+                      : isToolEstablished ? 'stripe-tools'
+                      : isToolNew         ? 'stripe-tools-dim'
                       : `stripe-${esc(p.type)}`;
 
     const mktLabel  = p.marketplaceRepo ? p.marketplaceRepo.split('/')[0] : (p.marketplace || 'added');
@@ -1565,6 +1716,10 @@ function render() {
       ? '<span class="discovered-badge">plugin</span>'
       : isNewPlugin
       ? '<span class="new-plugin-badge">unverified</span>'
+      : isToolEstablished
+      ? '<span class="discovered-badge" style="background:var(--c-scout);color:#001a0d">tool</span>'
+      : isToolNew
+      ? '<span class="new-plugin-badge" style="border-color:rgba(52,211,153,0.4);color:rgba(52,211,153,0.7)">unverified</span>'
       : isAdded
       ? `<span class="added-badge">${esc(mktLabel)}</span>`
       : isUnmonitored
@@ -1572,6 +1727,7 @@ function render() {
       : esc(typeLabel);
 
     const typeClass = isEstablished || isNewPlugin ? 'type-discovered'
+                    : isToolEstablished || isToolNew ? 'type-tools'
                     : isAdded ? 'type-added'
                     : `type-${esc(p.type)}`;
 
@@ -1579,16 +1735,22 @@ function render() {
       ? 'fill-discovered'
       : isNewPlugin
       ? 'fill-discovered'
+      : isToolEstablished || isToolNew
+      ? 'fill-tools'
       : `fill-${esc(p.type)}`;
 
-    const fillStyle = isNewPlugin ? ' opacity:0.3;' : '';
+    const fillStyle = isNewPlugin ? ' opacity:0.3;' : isToolNew ? ' opacity:0.35;' : '';
 
     // Section dividers
     let divider = '';
     if (isDiscovered && i === 0 && establishedCount > 0) {
-      divider = `<div class="section-divider">Established — 5+ stars</div>`;
+      divider = `<div class="section-divider">Established — community-verified</div>`;
     } else if (isDiscovered && i === establishedCount && establishedCount > 0 && list.length > establishedCount) {
-      divider = `<div class="section-divider">New &amp; Unverified — 1–4 stars</div>`;
+      divider = `<div class="section-divider">Emerging — low stars</div>`;
+    } else if (isToolsTab && i === 0 && establishedCount > 0) {
+      divider = `<div class="section-divider tools-divider">Established — 25+ stars</div>`;
+    } else if (isToolsTab && i === establishedCount && establishedCount > 0 && list.length > establishedCount) {
+      divider = `<div class="section-divider tools-divider">Emerging — low stars</div>`;
     } else if (isAddedTab && (i === 0 || list[i - 1].marketplace !== p.marketplace)) {
       const mkt     = p.marketplace || 'unknown';
       const repo    = p.marketplaceRepo;
@@ -1600,7 +1762,7 @@ function render() {
       divider = `<div class="section-divider-added">📦 ${esc(divLabel)}${repoLink ? ' · ' + repoLink : ''}<span class="mkt-count">${cnt} plugin${cnt !== 1 ? 's' : ''}</span></div>`;
     }
 
-    const starInfo = (isEstablished || isNewPlugin) && p.stars
+    const starInfo = (isEstablished || isNewPlugin || isToolEstablished || isToolNew) && p.stars
       ? ` <span style="opacity:0.45;font-size:0.75em">· ${p.stars}★</span>`
       : '';
 
@@ -1621,19 +1783,30 @@ function render() {
       ? `<span style="opacity:0.5;font-size:0.75em;font-family:var(--f-mono)">installed ${esc(new Date(p.installedAt).toLocaleDateString())}${p.version ? ' · v' + esc(p.version) : ''}</span>`
       : esc(p.desc)
     }</div>
+    ${(isToolEstablished || isToolNew) && p.topics?.length
+      ? `<div class="topic-pills">${p.topics.slice(0,6).map(t => `<span class="topic-pill">${esc(t)}</span>`).join('')}</div>`
+      : ''}
   </div>
   <div class="card-footer">
     ${(()=>{
       const isDisc = isEstablished || isNewPlugin;
-      const barPct = isDisc ? Math.min((p.stars || 0) / 500 * 100, 100) : pct;
-      const popTxt = isDisc ? (p.stars ? `★ ${p.stars}` : '—') : (count ? count + ' installs' : '—');
-      const popCls = (isDisc ? !!p.stars : !!count) ? 'has-data' : '';
+      const isTool = isToolEstablished || isToolNew;
+      const barPct = (isDisc || isTool) ? Math.min((p.stars || 0) / 500 * 100, 100) : pct;
+      const popTxt = (isDisc || isTool) ? (p.stars ? `★ ${p.stars}` : '—') : (count ? count + ' installs' : '—');
+      const popCls = ((isDisc || isTool) ? !!p.stars : !!count) ? 'has-data' : '';
       return `<div class="pop-row">
       <div class="pop-bar-wrap"><div class="pop-bar-fill ${fillClass}" style="width:${barPct}%;${fillStyle}"></div></div>
       <div class="pop-count ${popCls}">${popTxt}</div>
     </div>`;
     })()}
     ${(()=>{
+      const isTool = isToolEstablished || isToolNew;
+      if (isTool) {
+        if (p.installHint) {
+          return `<div class="install-cmd install-hint" onclick="copyCmd('${esc(p.installHint)}')" title="Click to copy install command"><span class="prompt">$</span>${esc(p.installHint)}</div>`;
+        }
+        return safeUrl ? `<a class="install-cmd view-on-github" href="${esc(safeUrl)}" target="_blank" rel="noopener">View on GitHub ↗</a>` : '';
+      }
       const installCmd = `/plugin install ${p.name}`;
       if (p.installed) {
         return `<div class="install-cmd installed-cmd" onclick="copyCmd('${esc(installCmd)}')" title="Click to copy"><span class="prompt">✓</span>${esc(installCmd)}</div>`;
@@ -1667,23 +1840,31 @@ function render() {
       const count     = fmtCount(p.installs);
       const pct       = popPct(p.installs);
       const safeUrl   = p.url && /^https?:\/\//.test(p.url) ? p.url : '';
-      const stripe    = p.tier ? (p.tier === 'established' ? 'stripe-discovered' : 'stripe-new-plugin') : `stripe-${esc(p.type ?? 'external')}`;
-      const fill      = p.tier ? 'fill-discovered'                                                       : `fill-${esc(p.type ?? 'external')}`;
+      const isTool    = !!p._isTool;
+      const stripe    = isTool ? (p.tier === 'established' ? 'stripe-tools' : 'stripe-tools-dim')
+                      : p.tier ? (p.tier === 'established' ? 'stripe-discovered' : 'stripe-new-plugin')
+                      : `stripe-${esc(p.type ?? 'external')}`;
+      const fill      = isTool ? 'fill-tools'
+                      : p.tier ? 'fill-discovered'
+                      : `fill-${esc(p.type ?? 'external')}`;
       const typeLabel = p.type === 'added' ? (p.marketplace || 'added')
                       : p.type === 'external' ? 'MCP' : (p.type?.toUpperCase() ?? '');
+      const ignoredBarPct = isTool ? Math.min((p.stars || 0) / 500 * 100, 100) : pct;
+      const ignoredPopTxt = isTool ? (p.stars ? `★ ${p.stars}` : '—') : (count ? count + ' installs' : '—');
+      const ignoredPopCls = isTool ? (p.stars ? 'has-data' : '') : (count ? 'has-data' : '');
       return `<div class="card card-ignored">
   <div class="card-stripe ${stripe}"></div>
   ${safeUrl ? `<a class="card-repo" href="${esc(safeUrl)}" target="_blank" rel="noopener">repo ↗</a>` : ''}
   <div class="card-body">
-    <div class="card-type type-${esc(p.type ?? 'external')}">${esc(typeLabel)}</div>
+    <div class="card-type ${isTool ? 'type-tools' : `type-${esc(p.type ?? 'external')}`}">${isTool ? 'tool' : esc(typeLabel)}</div>
     <div class="card-name">${esc(p.name)}</div>
     <div class="card-author">by&nbsp;${esc(p.author)}</div>
     <div class="card-desc">${esc(p.desc)}</div>
   </div>
   <div class="card-footer">
     <div class="pop-row">
-      <div class="pop-bar-wrap"><div class="pop-bar-fill ${fill}" style="width:${pct}%"></div></div>
-      <div class="pop-count ${count ? 'has-data' : ''}">${count ? count + ' installs' : '—'}</div>
+      <div class="pop-bar-wrap"><div class="pop-bar-fill ${fill}" style="width:${ignoredBarPct}%"></div></div>
+      <div class="pop-count ${ignoredPopCls}">${ignoredPopTxt}</div>
     </div>
   </div>
   <span class="unignore-link" onclick="unignorePlugin('${esc(p.name)}')">unignore</span>
