@@ -22,7 +22,7 @@ function env(name, fallback = '') {
   return (!v || /^\$\{[^}]+\}$/.test(v)) ? fallback : v;
 }
 
-const SERVER_VERSION = '1.5.13';
+const SERVER_VERSION = '1.5.14';
 const PORT           = parseInt(env('PLUGIN_BROWSER_PORT', '3747'), 10);
 const DEV_MODE     = env('PLUGIN_BROWSER_DEV', '') === '1';
 const PLUGINS_BASE = path.join(os.homedir(), '.claude', 'plugins');
@@ -131,7 +131,7 @@ const https = require('https');
 const DISCOVERED_CACHE_FILE = path.join(PLUGIN_DATA, 'discovered-plugins.json');
 const DISCOVERED_CACHE_TTL  = 7 * 24 * 60 * 60 * 1000; // 7 days
 const DISCOVERED_DATA_URL   =
-  'repos/devycelabs/claude-plugin-browser-data/contents/discovered.json';
+  'devycelabs/claude-plugin-browser-data/main/discovered.json';
 
 // Read a single-plugin marketplace (plugin.json lives at repo root, not inside plugins/)
 function readRootPlugin(dir, defaultType) {
@@ -234,13 +234,12 @@ async function discoverPlugins() {
 
   if (!DEV_MODE && !stale) return { ..._discoveredCache, cached: true };
 
-  const raw = await githubGetRaw(DISCOVERED_DATA_URL);
-  if (!raw?.content) return _discoveredCache ?? { plugins: [], error: 'unavailable' };
+  const raw = await githubGetRawFile(DISCOVERED_DATA_URL);
+  if (!raw) return _discoveredCache ?? { plugins: [], error: 'unavailable' };
 
   let data;
-  try {
-    data = JSON.parse(Buffer.from(raw.content, 'base64').toString('utf8'));
-  } catch { return _discoveredCache ?? { plugins: [], error: 'parse error' }; }
+  try { data = JSON.parse(raw); }
+  catch { return _discoveredCache ?? { plugins: [], error: 'parse error' }; }
 
   _discoveredCache = data;
   try {
@@ -277,8 +276,22 @@ function githubGet(apiPath) {
   });
 }
 
-// Alias — GitHub Contents API returns 200 with base64-encoded body, same as other endpoints
-const githubGetRaw = githubGet;
+// Fetch raw file from raw.githubusercontent.com — no 1MB size limit
+function githubGetRawFile(rawPath) {
+  return new Promise(resolve => {
+    const req = https.get({
+      hostname: 'raw.githubusercontent.com',
+      path: '/' + rawPath,
+      headers: { 'User-Agent': `claude-scout/${SERVER_VERSION}` },
+    }, res => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => resolve(res.statusCode === 200 ? Buffer.concat(chunks).toString('utf8') : null));
+    });
+    req.setTimeout(30_000, () => req.destroy());
+    req.on('error', () => resolve(null));
+  });
+}
 
 // Extract "owner/repo" from a GitHub URL, or return null
 function extractGithubRepo(url) {
