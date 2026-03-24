@@ -229,6 +229,7 @@ async function discoverPlugins() {
   }
 
   const stale = !_discoveredCache ||
+    !_discoveredCache.tools ||
     (Date.now() - new Date(_discoveredCache.generatedAt).getTime()) > DISCOVERED_CACHE_TTL;
 
   if (!DEV_MODE && !stale) return { ..._discoveredCache, cached: true };
