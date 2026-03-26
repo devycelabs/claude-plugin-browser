@@ -981,9 +981,8 @@ function renderDiscCard(p, delay) {
   const badgeOp  = tier === 'founding' ? ' style="opacity:0.7"' : '';
   const desc = (p.description||p.desc||'').length > 400 ? (p.description||p.desc||'').slice(0,400)+'…' : (p.description||p.desc||'');
   const tags = (p.keywords||p.tags||[]).slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
-  const installCmd = p.repo
-    ? `/plugin marketplace add ${p.repo}\n/plugin install ${p.name}`
-    : `/plugin install ${p.name}`;
+  const repoUrl = p.repoUrl || (p.repo ? `https://github.com/${p.repo}` : '');
+  const repoLink = repoUrl ? `<a class="install-cmd" href="${esc(repoUrl)}" target="_blank" rel="noopener" style="text-decoration:none">View on GitHub ↗</a>` : '';
   return `<div class="p-card" style="animation-delay:${delay}ms">
   <div class="card-top">
     ${iconHtml(p.name, 'icon-discovered')}
@@ -999,11 +998,7 @@ function renderDiscCard(p, delay) {
     <div class="card-tags">${tags}</div>
     ${starsHtml(p.stars)}
   </div>
-  <div class="install-cmd" onclick="copyCmd('${esc(installCmd)}')" title="Click to copy">${
-    p.repo
-      ? `<span class="prompt">$</span>/plugin install ${esc(p.name)}`
-      : `<span class="prompt">$</span>/plugin install ${esc(p.name)}`
-  }</div>
+  ${repoLink}
 </div>`;
 }
 
@@ -1011,9 +1006,8 @@ function renderDiscCard(p, delay) {
 function renderToolCard(t, delay) {
   const desc = (t.description||t.desc||'').length > 400 ? (t.description||t.desc||'').slice(0,400)+'…' : (t.description||t.desc||'');
   const topics = (t.topics||[]).slice(0,3).map(tp=>`<span class="topic-pill">${esc(tp)}</span>`).join('');
-  const installEl = t.installHint
-    ? `<div class="install-cmd" onclick="copyCmd('${esc(t.installHint)}')" title="Click to copy"><span class="prompt">$</span>${esc(t.installHint)}</div>`
-    : (t.repoUrl||t.url) ? `<a class="install-cmd" href="${esc(t.repoUrl||t.url)}" target="_blank" rel="noopener" style="text-decoration:none">View on GitHub ↗</a>` : '';
+  const repoUrl = t.repoUrl || t.url || '';
+  const installEl = repoUrl ? `<a class="install-cmd" href="${esc(repoUrl)}" target="_blank" rel="noopener" style="text-decoration:none">View on GitHub ↗</a>` : '';
   return `<div class="p-card" style="animation-delay:${delay}ms">
   <div class="card-top">
     ${iconHtml(t.name, 'icon-tools')}
