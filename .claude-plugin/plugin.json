@@ -1,6 +1,6 @@
 {
   "name": "claude-scout",
-  "version": "1.5.14",
+  "version": "1.5.15",
   "description": "Claude Scout — local web UI for discovering and browsing Claude Code plugins. Shows install counts, installed status, marketplace sources, and one-click copy of install commands.",
   "author": {
     "name": "Devyce Labs",
