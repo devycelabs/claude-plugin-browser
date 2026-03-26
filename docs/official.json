@@ -180,6 +180,24 @@
     "homepage": ""
   },
   {
+    "name": "math-olympiad",
+    "description": "Solve competition math (IMO, Putnam, USAMO) with adversarial verification that catches what self-verification misses. Fresh-context verifiers attack proofs with specific failure patterns. Calibrated abstention over bluffing.",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "mcp-server-dev",
+    "description": "Skills for designing and building MCP servers that work seamlessly with Claude — guides you through deployment models (remote HTTP, MCPB, local), tool design patterns, auth, and interactive MCP apps.",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
     "name": "php-lsp",
     "description": "PHP language server (Intelephense) for Claude Code, providing code intelligence and diagnostics.",
     "author": "Anthropic",
@@ -324,6 +342,36 @@
     "homepage": ""
   },
   {
+    "name": "discord",
+    "description": "Discord channel for Claude Code — messaging bridge with built-in access control. Manage pairing, allowlists, and policy via /discord:access.",
+    "author": "Anthropic",
+    "type": "external",
+    "keywords": [
+      "discord",
+      "messaging",
+      "channel",
+      "mcp"
+    ],
+    "version": "0.0.4",
+    "homepage": ""
+  },
+  {
+    "name": "fakechat",
+    "description": "Localhost iMessage-style web chat for Claude Code — test surface with file upload and edits. No tokens, no access control.",
+    "author": "Anthropic",
+    "type": "external",
+    "keywords": [
+      "fakechat",
+      "web",
+      "localhost",
+      "testing",
+      "channel",
+      "mcp"
+    ],
+    "version": "0.0.1",
+    "homepage": ""
+  },
+  {
     "name": "firebase",
     "description": "Google Firebase MCP integration. Manage Firestore databases, authentication, cloud functions, hosting, and storage. Build and manage your Firebase backend directly from your development workflow.",
     "author": "Google",
@@ -364,6 +412,20 @@
     ],
     "version": "",
     "homepage": "https://greptile.com/docs"
+  },
+  {
+    "name": "imessage",
+    "description": "iMessage channel for Claude Code — reads chat.db directly, sends via AppleScript. Built-in access control; manage pairing, allowlists, and policy via /imessage:access.",
+    "author": "Anthropic",
+    "type": "external",
+    "keywords": [
+      "imessage",
+      "messaging",
+      "channel",
+      "mcp"
+    ],
+    "version": "0.0.1",
+    "homepage": ""
   },
   {
     "name": "laravel-boost",
@@ -411,24 +473,32 @@
     "homepage": ""
   },
   {
-    "name": "stripe",
-    "description": "Stripe development plugin for Claude",
-    "author": "Stripe",
-    "type": "external",
-    "keywords": [
-      "stripe",
-      "payments",
-      "webhooks",
-      "api",
-      "security"
-    ],
-    "version": "0.1.0",
-    "homepage": "https://docs.stripe.com"
-  },
-  {
     "name": "supabase",
     "description": "Supabase MCP integration for database operations, authentication, storage, and real-time subscriptions. Manage your Supabase projects, run SQL queries, and interact with your backend directly.",
     "author": "Supabase",
+    "type": "external",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "telegram",
+    "description": "Telegram channel for Claude Code — messaging bridge with built-in access control. Manage pairing, allowlists, and policy via /telegram:access.",
+    "author": "Anthropic",
+    "type": "external",
+    "keywords": [
+      "telegram",
+      "messaging",
+      "channel",
+      "mcp"
+    ],
+    "version": "0.0.4",
+    "homepage": ""
+  },
+  {
+    "name": "terraform",
+    "description": "The Terraform MCP Server provides seamless integration with Terraform ecosystem, enabling advanced automation and interaction capabilities for Infrastructure as Code (IaC) development.",
+    "author": "HashiCorp",
     "type": "external",
     "keywords": [],
     "version": "",
