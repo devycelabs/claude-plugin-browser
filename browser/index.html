@@ -41,6 +41,9 @@
   --f-display:  'Syne', sans-serif;
   --f-mono:     'JetBrains Mono', monospace;
   --f-body:     'Outfit', sans-serif;
+  --radius:      8px;
+  --radius-sm:   5px;
+  --surface3:    #1c1c21;
 }
 
 /* ── Light theme ──────────────────────────────────────────── */
@@ -61,6 +64,7 @@ html[data-theme="light"] {
   --c-external:  #2878b8;
   --c-lsp:       #6e52c8;
   --c-installed: #2a8a52;
+  --surface3:    #e5e1d8;
 }
 
 html { font-size: 16px; }
@@ -85,163 +89,222 @@ body::before {
 
 /* ── Header ───────────────────────────────────────────────── */
 header {
-  position: relative;
-  padding: 44px 44px 32px;
-  border-bottom: 1px solid var(--border);
-  overflow: hidden;
-  z-index: 1;
-}
-
-header::after {
-  content: '';
-  position: absolute;
-  top: -60px; right: -80px;
-  width: 380px; height: 380px;
-  background: radial-gradient(circle, var(--header-glow) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.header-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-}
-
-.header-title {
-  font-family: var(--f-display);
-  font-weight: 800;
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-  color: var(--text);
-  text-transform: uppercase;
-}
-
-.header-title .dim { color: var(--muted2); }
-
-.header-count {
-  font-family: var(--f-display);
-  font-weight: 800;
-  font-size: clamp(3rem, 6vw, 5rem);
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: var(--border2);
-  user-select: none;
-  flex-shrink: 0;
-  align-self: flex-end;
-}
-
-.header-meta {
-  margin-top: 14px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.header-tag {
-  font-family: var(--f-mono);
-  font-size: 0.7rem;
-  color: var(--muted);
-  padding: 3px 8px;
-  border: 1px solid var(--border2);
-  border-radius: 3px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.header-dot {
-  width: 3px; height: 3px;
-  background: var(--muted2);
-  border-radius: 50%;
-}
-
-/* ── Toolbar ─────────────────────────────────────────────── */
-.toolbar {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
+  background: rgba(10,10,11,0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+html[data-theme="light"] header {
+  background: rgba(245,241,234,0.92);
+}
+
+.header-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  margin-right: 32px;
+  flex-shrink: 0;
+}
+
+.logo-mark {
+  width: 26px;
+  height: 26px;
+  background: linear-gradient(135deg, var(--c-scout) 0%, #1fa375 100%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: #0a0a0b;
+  font-weight: 700;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.logo-text {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.header-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.header-tabs::-webkit-scrollbar { display: none; }
+
+.header-tab {
+  position: relative;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  background: none;
+  font-family: var(--f-body);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.header-tab:hover { color: var(--text); background: var(--surface2); }
+.header-tab.active { color: var(--text); background: var(--surface2); }
+.header-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 14px;
+  right: 14px;
+  height: 2px;
+  background: var(--c-scout);
+  border-radius: 1px;
+}
+.header-tab.f-anthropic.active::after { background: var(--c-anthropic); }
+.header-tab.f-external.active::after  { background: var(--c-external); }
+.header-tab.f-lsp.active::after       { background: var(--c-lsp); }
+.header-tab.f-installed.active::after { background: var(--c-installed); }
+.header-tab.f-added.active::after     { background: #a78bfa; }
+.header-tab.f-unmonitored.active::after { background: var(--c-gold); }
+.header-tab.f-discovered.active::after  { background: #38bdf8; }
+.header-tab.f-tools.active::after       { background: var(--c-scout); }
+
+.tab-count {
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  background: var(--surface3);
+  color: var(--muted);
+  padding: 1px 5px;
+  border-radius: 3px;
+  min-width: 20px;
+  text-align: center;
+}
+.header-tab.active .tab-count { background: var(--border2); color: var(--text); }
+
+.header-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 44px;
-  background: var(--toolbar-bg);
-  backdrop-filter: blur(12px);
+  flex-shrink: 0;
+}
+
+/* ── Stats bar ───────────────────────────────────────────── */
+.stats-bar {
   border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
+  background: var(--surface);
+}
+.stats-bar-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 4px 24px;
+  font-family: var(--f-mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.stats-bar-inner em { color: var(--text); font-style: normal; font-weight: 600; }
+
+/* ── Filter section ─────────────────────────────────────── */
+.filter-section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 12px 24px 0;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 /* Search */
 .search-wrap {
-  position: relative;
-  flex: 0 0 auto;
-  width: 240px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
 }
-.search-prompt {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-family: var(--f-mono);
-  font-size: 0.75rem;
-  color: var(--c-anthropic);
-  pointer-events: none;
+.search-icon {
+  color: var(--muted2);
+  font-size: 1rem;
+  flex-shrink: 0;
   user-select: none;
+  line-height: 1;
 }
 input[type="search"] {
-  width: 100%;
-  padding: 7px 10px 7px 26px;
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: 4px;
+  flex: 1;
+  padding: 5px 4px;
+  background: transparent;
+  border: none;
   color: var(--text);
   font-family: var(--f-mono);
   font-size: 0.78rem;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
   letter-spacing: 0.01em;
-}
-input[type="search"]:focus {
-  border-color: var(--c-anthropic);
-  box-shadow: 0 0 0 2px rgba(224,122,82,0.1);
+  min-width: 0;
 }
 input[type="search"]::placeholder { color: var(--muted2); }
 input[type="search"]::-webkit-search-cancel-button { display: none; }
 
-/* Filter pills */
-.filters {
-  display: flex;
-  gap: 3px;
-  flex-wrap: wrap;
+.filter-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border2);
+  flex-shrink: 0;
 }
-.filter-btn {
-  font-family: var(--f-mono);
-  font-size: 0.68rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 5px 12px;
-  border: 1px solid var(--border2);
-  border-radius: 3px;
-  background: transparent;
+
+.sort-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.sort-btn {
+  padding: 5px 11px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
   color: var(--muted);
   cursor: pointer;
-  transition: all 0.15s;
+  font-family: var(--f-body);
+  font-weight: 500;
+  transition: all 0.12s;
   white-space: nowrap;
 }
-.filter-btn:hover { color: var(--text); border-color: var(--muted); }
-.filter-btn.active.f-all       { background: var(--text);         border-color: var(--text);         color: var(--bg); }
-.filter-btn.active.f-anthropic { background: var(--c-anthropic);  border-color: var(--c-anthropic);  color: #fff; }
-.filter-btn.active.f-external  { background: var(--c-external);   border-color: var(--c-external);   color: #fff; }
-.filter-btn.active.f-lsp       { background: var(--c-lsp);        border-color: var(--c-lsp);        color: #fff; }
-.filter-btn.active.f-installed { background: var(--c-installed);  border-color: var(--c-installed);  color: #000; }
-.filter-btn.active.f-added        { background: #a78bfa;             border-color: #a78bfa;             color: #1a0050; }
-.filter-btn.f-added               { color: #a78bfa; border-color: rgba(167,139,250,0.35); }
-.filter-btn.active.f-unmonitored  { background: var(--c-gold);        border-color: var(--c-gold);       color: #1a1400; }
-.filter-btn.f-unmonitored         { color: var(--c-gold); border-color: rgba(224,192,74,0.35); }
-.filter-btn.active.f-discovered   { background: #38bdf8; border-color: #38bdf8; color: #051a2e; }
-.filter-btn.f-discovered          { color: #38bdf8; border-color: rgba(56,189,248,0.35); }
+.sort-btn:hover { color: var(--text); background: var(--surface2); }
+.sort-btn.active { color: var(--text); background: var(--surface3); }
 
 /* ── Community / archived ───────────────────────────────────── */
 .card.archived { opacity: 0.55; }
@@ -293,18 +356,6 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
   color: #2a4a5c;
   border-bottom: 1px solid rgba(56,189,248,0.08);
 }
-.section-divider {
-  grid-column: 1/-1;
-  padding: 8px 20px;
-  font-family: var(--f-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(56,189,248,0.5);
-  border-bottom: 1px solid rgba(56,189,248,0.12);
-  background: rgba(56,189,248,0.03);
-}
-
 .section-divider-added {
   grid-column: 1/-1;
   padding: 8px 20px;
@@ -331,276 +382,209 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
   opacity: 0.45;
 }
 
-/* Sort */
-.sort-wrap {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-family: var(--f-mono);
-  font-size: 0.68rem;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-select {
-  font-family: var(--f-mono);
-  font-size: 0.7rem;
-  padding: 5px 8px;
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: 4px;
-  color: var(--text);
-  cursor: pointer;
-  outline: none;
-  transition: border-color 0.15s;
-  letter-spacing: 0.02em;
-}
-select:focus { border-color: var(--muted); }
-
-/* ── Stats row ───────────────────────────────────────────── */
-.stats-row {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 9px 44px;
-  border-bottom: 1px solid var(--border);
-  font-family: var(--f-mono);
-  font-size: 0.68rem;
-  color: var(--muted);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.stats-row em { color: var(--text); font-style: normal; font-weight: 600; }
-.stats-legend {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-}
-.legend-dot {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.dot {
-  width: 6px; height: 6px;
-  border-radius: 1px;
-  flex-shrink: 0;
-}
-.dot-anthropic { background: var(--c-anthropic); }
-.dot-external  { background: var(--c-external); }
-.dot-lsp       { background: var(--c-lsp); }
-
 /* ── Grid ────────────────────────────────────────────────── */
+.grid-outer {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px 64px;
+}
+
 .grid {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  background: var(--border);
-  gap: 1px;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 10px;
 }
 
 /* ── Card ────────────────────────────────────────────────── */
 @keyframes cardIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 .card {
   position: relative;
   background: var(--surface);
-  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
   display: flex;
   flex-direction: column;
+  gap: 10px;
   opacity: 0;
   animation: cardIn 0.28s ease forwards;
-  transition: background 0.18s;
+  transition: background 0.15s, border-color 0.15s;
   overflow: hidden;
 }
-.card:hover { background: var(--surface2); }
+.card:hover { background: var(--surface2); border-color: var(--border2); }
 
-/* Top stripe */
+/* Top stripe — kept for ignored cards */
 .card-stripe {
   height: 2px;
   width: 100%;
   flex-shrink: 0;
+  display: none;
 }
 .stripe-anthropic { background: var(--c-anthropic); }
 .stripe-external  { background: var(--c-external); }
 .stripe-lsp       { background: var(--c-lsp); }
 
-.card-body {
-  padding: 18px 20px 16px;
+/* Card top: icon + name + badges */
+.card-top {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
   gap: 10px;
-  flex: 1;
 }
 
-/* Repo link */
-.card-repo {
-  position: absolute;
-  top: 10px; right: 10px;
+.card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 1px solid var(--border2);
+  letter-spacing: -0.02em;
+  user-select: none;
+}
+.icon-anthropic  { background: rgba(224,122,82,0.12); color: var(--c-anthropic); border-color: rgba(224,122,82,0.22); }
+.icon-external   { background: rgba(74,159,224,0.12); color: var(--c-external);  border-color: rgba(74,159,224,0.22); }
+.icon-lsp        { background: rgba(154,122,224,0.12); color: var(--c-lsp);      border-color: rgba(154,122,224,0.22); }
+.icon-discovered { background: rgba(56,189,248,0.10); color: #38bdf8;            border-color: rgba(56,189,248,0.2); }
+.icon-tools      { background: rgba(52,211,153,0.10); color: var(--c-scout);     border-color: rgba(52,211,153,0.2); }
+.icon-added      { background: rgba(167,139,250,0.10); color: #a78bfa;           border-color: rgba(167,139,250,0.2); }
+.icon-unmonitored { background: rgba(224,192,74,0.10); color: var(--c-gold);     border-color: rgba(224,192,74,0.2); }
+
+.card-name-wrap { flex: 1; min-width: 0; }
+
+/* Card name + author */
+.card-name {
+  font-family: var(--f-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.card-author {
+  font-family: var(--f-body);
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-badges {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-family: var(--f-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.04em;
-  color: var(--muted2);
-  text-decoration: none;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: 3px;
-  padding: 3px 7px;
-  line-height: 1;
-  transition: color 0.15s, border-color 0.15s;
-}
-.card-repo:hover { color: var(--text); border-color: var(--muted2); }
-
-/* Added / unmonitored security strips */
-.added-security-strip {
-  background: rgba(167,139,250,0.06);
-  border-top: 1px solid rgba(167,139,250,0.18);
-  padding: 6px 14px;
-  font-family: var(--f-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.02em;
-  color: #a78bfa;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.added-security-strip::before { content: '📦'; font-size: 0.65rem; }
-.unmonitored-security-strip {
-  background: rgba(232,147,10,0.07);
-  border-top: 1px solid rgba(232,147,10,0.18);
-  padding: 6px 14px;
-  font-family: var(--f-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.02em;
-  color: var(--c-amber, #E8930A);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.unmonitored-security-strip::before { content: '🔍'; font-size: 0.65rem; }
-
-/* Type label */
-.card-type {
-  font-family: var(--f-mono);
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  opacity: 0.75;
-}
-.type-anthropic  { color: var(--c-anthropic); }
-.type-external   { color: var(--c-external); }
-.type-lsp        { color: var(--c-lsp); }
-.type-discovered { color: #38bdf8; }
-.type-added      { color: #a78bfa; }
-
-/* Plugin name */
-.card-name {
-  font-family: var(--f-mono);
-  font-size: 0.98rem;
-  font-weight: 600;
-  color: var(--text);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.installed-pip {
-  display: inline-block;
-  width: 6px; height: 6px;
-  background: var(--c-installed);
-  border-radius: 50%;
   flex-shrink: 0;
-  position: relative;
-  top: -1px;
-  box-shadow: 0 0 6px var(--c-installed);
 }
-
-/* Author */
-.card-author {
-  font-family: var(--f-mono);
-  font-size: 0.68rem;
-  color: var(--muted);
-  letter-spacing: 0.02em;
-  margin-top: -4px;
-}
-.card-author span { color: var(--muted); }
 
 /* Description */
 .card-desc {
   font-family: var(--f-body);
   font-size: 0.82rem;
-  font-weight: 400;
   color: var(--muted);
-  line-height: 1.55;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   flex: 1;
 }
 
-/* ── Card footer ──────────────────────────────────────────── */
-.card-footer {
-  padding: 10px 20px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border-top: 1px solid var(--border);
-}
-
-/* Popularity bar */
-.pop-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.pop-bar-wrap {
-  flex: 1;
-  height: 3px;
+/* Star bar (discovered / tools) */
+.star-bar-wrap { margin-top: -4px; }
+.star-bar-track {
+  height: 2px;
   background: var(--border2);
-  border-radius: 2px;
+  border-radius: 1px;
   overflow: hidden;
 }
-.pop-bar-fill {
+.star-bar-fill {
   height: 100%;
-  border-radius: 2px;
-  transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+  border-radius: 1px;
+  transition: width 0.4s ease;
 }
-.fill-anthropic { background: var(--c-anthropic); }
-.fill-external  { background: var(--c-external); }
-.fill-lsp       { background: var(--c-lsp); }
+.fill-discovered { background: #38bdf8; }
+.fill-tools      { background: var(--c-scout); }
 
-.pop-count {
-  font-family: var(--f-mono);
-  font-size: 0.65rem;
-  color: var(--muted);
-  white-space: nowrap;
-  flex-shrink: 0;
-  min-width: 44px;
-  text-align: right;
+/* Card footer: tags + star/install count */
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
 }
-.pop-count.has-data { color: var(--muted); }
+
+.card-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.tag {
+  font-size: 0.68rem;
+  color: var(--muted2);
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-family: var(--f-body);
+  white-space: nowrap;
+}
+
+.card-stars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.card-stars .star { color: var(--c-gold); font-size: 0.6rem; }
+
+/* Repo link (inline, not absolute-positioned) */
+.card-repo {
+  font-family: var(--f-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  color: var(--muted2);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.card-repo:hover { color: var(--muted); }
 
 /* Install command */
 .install-cmd {
   font-family: var(--f-mono);
-  font-size: 0.68rem;
-  color: var(--muted2);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 5px 10px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: border-color 0.15s, color 0.15s;
   user-select: all;
   white-space: nowrap;
   overflow: hidden;
@@ -610,9 +594,8 @@ select:focus { border-color: var(--muted); }
   gap: 6px;
 }
 .install-cmd:hover {
-  border-color: var(--border2);
+  border-color: var(--c-scout);
   color: var(--text);
-  background: var(--surface);
 }
 .install-cmd .prompt {
   color: var(--c-installed);
@@ -642,6 +625,46 @@ select:focus { border-color: var(--muted); }
 .install-cmd-multi .prompt { color: var(--muted2); font-weight: 600; flex-shrink: 0; user-select: none; }
 .install-cmd-multi .prompt.p-add { color: #38bdf8; }
 .install-cmd-multi .prompt.p-install { color: var(--c-installed); }
+
+/* Added / unmonitored security strips */
+.added-security-strip {
+  background: rgba(167,139,250,0.06);
+  border-top: 1px solid rgba(167,139,250,0.18);
+  padding: 6px 14px;
+  font-family: var(--f-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.02em;
+  color: #a78bfa;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.added-security-strip::before { content: '📦'; font-size: 0.65rem; }
+.unmonitored-security-strip {
+  background: rgba(232,147,10,0.07);
+  border-top: 1px solid rgba(232,147,10,0.18);
+  padding: 6px 14px;
+  font-family: var(--f-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.02em;
+  color: var(--c-amber, #E8930A);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.unmonitored-security-strip::before { content: '🔍'; font-size: 0.65rem; }
+
+.installed-pip {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--c-installed);
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+  top: -1px;
+  box-shadow: 0 0 6px var(--c-installed);
+}
+
 
 /* ── Empty state ──────────────────────────────────────────── */
 .empty {
@@ -882,13 +905,13 @@ html { transition: background 0.25s, color 0.25s; }
   border-bottom: 1px solid #16151a;
   background: #0c0c0d;
 }
-.filter-btn.f-ignored { color: #3a3840; border-color: #222127; }
-.filter-btn.f-ignored:hover { color: #666; border-color: #3a3840; }
-.filter-btn.f-ignored.hide-active { color: #888; border-color: #3a3840; background: #18161e; text-decoration: line-through; }
+.header-tab.f-ignored { color: #4a4855; }
+.header-tab.f-ignored:hover { color: #888; }
+.header-tab.f-ignored.hide-active { text-decoration: line-through; opacity: 0.55; }
+.header-tab.f-ignored.active { color: #888; background: rgba(255,255,255,0.04); }
 
 /* ── Tools tab ───────────────────────────────────────────── */
-.filter-btn.active.f-tools { background: var(--c-scout); border-color: var(--c-scout); color: #001a0d; }
-.filter-btn.f-tools { color: var(--c-scout); border-color: rgba(52,211,153,0.3); }
+.header-tab.f-tools { color: var(--c-scout); }
 .stripe-tools     { background: var(--c-scout); }
 .stripe-tools-dim { background: rgba(52,211,153,0.35); }
 .type-tools { color: var(--c-scout); }
@@ -960,81 +983,107 @@ html { transition: background 0.25s, color 0.25s; }
 .page-footer a:hover { opacity: 1; }
 .page-footer .sep { margin: 0 8px; opacity: 0.4; }
 
+/* ── Tier dividers ───────────────────────────────────────── */
+.tier-divider {
+  grid-column: 1/-1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 0 12px;
+}
+.tier-label {
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+.tier-label.established { color: var(--c-gold); }
+.tier-label.new-tier    { color: #38bdf8; }
+.tier-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.tier-count {
+  font-family: var(--f-mono);
+  font-size: 0.65rem;
+  color: var(--muted2);
+  background: var(--surface2);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* ── Keyword filter row (inside filter-section) ─────────── */
+#keyword-filter-row {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 </style>
 </head>
 <body>
 
 <!-- Header -->
 <header>
-  <div class="header-top">
-    <div>
-      <div class="header-title">
-        Claude<br><span style="color:var(--c-scout)">Scout</span>
-      </div>
+  <div class="header-inner">
+    <a class="logo" href="/" title="Claude Scout">
+      <div class="logo-mark">CS</div>
+      <span class="logo-text">Claude Scout</span>
+    </a>
+    <div class="header-tabs">
+      <button class="header-tab f-all active" onclick="setFilter('all',this)">All <span class="tab-count" id="tab-count-all"></span></button>
+      <button class="header-tab f-anthropic" onclick="setFilter('anthropic',this)">Anthropic</button>
+      <button class="header-tab f-external"  onclick="setFilter('external',this)">MCP</button>
+      <button class="header-tab f-lsp"       onclick="setFilter('lsp',this)">LSP</button>
+      <button class="header-tab f-installed" onclick="setFilter('installed',this)">Installed</button>
+      <button class="header-tab f-added"       id="added-tab"       onclick="setFilter('added',this)"       style="display:none">Added       <span class="tab-count" id="added-count"></span></button>
+      <button class="header-tab f-unmonitored" id="unmonitored-tab" onclick="setFilter('unmonitored',this)" style="display:none">Unmonitored <span class="tab-count" id="unmonitored-count"></span></button>
+      <button class="header-tab f-discovered"  id="discovered-tab"  onclick="setFilter('discovered',this)"  style="display:none">Plugins     <span class="tab-count" id="discovered-count"></span></button>
+      <button class="header-tab f-tools"       id="tools-tab"       onclick="setFilter('tools',this)"       style="display:none">Tools       <span class="tab-count" id="tools-count"></span></button>
+      <button class="header-tab f-ignored"     id="ignored-chip"    onclick="toggleHideIgnored()"           style="display:none">Ignored     <span class="tab-count" id="ignored-count"></span></button>
     </div>
-    <div class="header-count" id="header-count" aria-hidden="true">43</div>
   </div>
 </header>
-
-<!-- Toolbar -->
-<div class="toolbar">
-  <div class="search-wrap">
-    <span class="search-prompt">&gt;</span>
-    <input type="search" id="search" placeholder="search plugins_" oninput="render()" autocomplete="off" spellcheck="false">
-  </div>
-  <div class="filters">
-    <button class="filter-btn f-all active"       onclick="setFilter('all',this)">All</button>
-    <button class="filter-btn f-anthropic"         onclick="setFilter('anthropic',this)">Anthropic</button>
-    <button class="filter-btn f-external"          onclick="setFilter('external',this)">MCP</button>
-    <button class="filter-btn f-lsp"               onclick="setFilter('lsp',this)">LSP</button>
-    <button class="filter-btn f-installed"         onclick="setFilter('installed',this)">Installed</button>
-    <button class="filter-btn f-added" id="added-tab" onclick="setFilter('added',this)" style="display:none">Added <span id="added-count"></span></button>
-    <button class="filter-btn f-unmonitored" id="unmonitored-tab" onclick="setFilter('unmonitored',this)" style="display:none">Unmonitored <span id="unmonitored-count"></span></button>
-    <button class="filter-btn f-discovered" id="discovered-tab" onclick="setFilter('discovered',this)" style="display:none">Plugins <span id="discovered-count"></span></button>
-    <button class="filter-btn f-tools" id="tools-tab" onclick="setFilter('tools',this)" style="display:none">Tools <span id="tools-count"></span></button>
-    <button class="filter-btn f-ignored" id="ignored-chip" onclick="toggleHideIgnored()" style="display:none">— ignored <span id="ignored-count"></span></button>
-  </div>
-  <div class="sort-wrap">
-    <span>Sort</span>
-    <select id="sort" onchange="render()">
-      <option value="popular">Popular</option>
-      <option value="name">Name A–Z</option>
-      <option value="recently-updated" id="sort-recently-updated" style="display:none">Recently updated</option>
-    </select>
-  </div>
-
-  <div id="status-badge" class="status-badge checking">
-    <div class="status-dot"></div>
-    <span id="status-text">checking</span>
-  </div>
-
-  <button class="sync-btn" id="sync-btn" onclick="syncFromServer()" title="Re-read official plugins from local cache">
-    <span class="spin">⟳</span> Sync
-  </button>
-
-  <button class="sync-btn deep-sync-btn" id="deep-sync-btn" onclick="deepSync()" title="Pull latest from marketplace via claude CLI">
-    <span class="spin">↓</span> Update
-  </button>
-
-  <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark mode"></button>
-</div>
 
 <!-- Restart banner (hidden until server reports needsRestart) -->
 <div id="restart-banner" style="display:none"></div>
 
-<!-- Stats -->
-<div class="stats-row">
-  <span id="stats"></span>
-  <div class="stats-legend">
-    <div class="legend-dot"><div class="dot dot-anthropic"></div> Anthropic</div>
-    <div class="legend-dot"><div class="dot dot-external"></div> MCP</div>
-    <div class="legend-dot"><div class="dot dot-lsp"></div> LSP</div>
+<!-- Stats bar -->
+<div class="stats-bar">
+  <div class="stats-bar-inner">
+    <span id="stats"></span>
+    <div class="header-actions">
+      <div id="status-badge" class="status-badge checking">
+        <div class="status-dot"></div><span id="status-text">checking</span>
+      </div>
+      <button class="sync-btn" id="sync-btn" onclick="syncFromServer()" title="Re-read official plugins from local cache"><span class="spin">⟳</span> Sync</button>
+      <button class="sync-btn deep-sync-btn" id="deep-sync-btn" onclick="deepSync()" title="Pull latest from marketplace via claude CLI"><span class="spin">↓</span> Update</button>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark mode"></button>
+    </div>
   </div>
 </div>
 
-<!-- Grid -->
-<div id="keyword-filter-row"></div>
-<div class="grid" id="grid"></div>
+<!-- Filter + Grid -->
+<div class="filter-section">
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="search" id="search" placeholder="search plugins_" oninput="render()" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="filter-divider"></div>
+    <div class="sort-group">
+      <button class="sort-btn active" data-sort="popular" onclick="setSort('popular',this)">Popular</button>
+      <button class="sort-btn" data-sort="name" onclick="setSort('name',this)">A–Z</button>
+      <button class="sort-btn" id="sort-recently-updated" data-sort="recently-updated" onclick="setSort('recently-updated',this)" style="display:none">Recent</button>
+    </div>
+  </div>
+  <div id="keyword-filter-row"></div>
+</div>
+<div class="grid-outer">
+  <div class="grid" id="grid"></div>
+</div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -1434,7 +1483,6 @@ function updateIgnoredChip() {
     chip.style.display = '';
     cnt.textContent = `(${ignoredPlugins.size})`;
     chip.classList.toggle('hide-active', hideIgnored);
-    chip.firstChild.nodeValue = hideIgnored ? '↩ ignored ' : '— ignored ';
   } else {
     chip.style.display = 'none';
     hideIgnored = false;
@@ -1448,6 +1496,7 @@ function toggleHideIgnored() {
 
 // ── State ────────────────────────────────────────────────────
 let activeFilter = "all";
+let activeSort = 'popular';
 
 // ── Helpers ──────────────────────────────────────────────────
 function esc(s) {
@@ -1468,7 +1517,7 @@ function popPct(n) {
 // ── Filter ───────────────────────────────────────────────────
 function setFilter(f, btn) {
   activeFilter = f;
-  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".header-tab").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
   // Show "Recently updated" sort on Discovered and Tools tabs
   const recentOpt = document.getElementById('sort-recently-updated');
@@ -1478,10 +1527,17 @@ function setFilter(f, btn) {
   render();
 }
 
+function setSort(s, btn) {
+  activeSort = s;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
 // ── Render ───────────────────────────────────────────────────
 function render() {
   const q    = document.getElementById("search").value.toLowerCase().trim();
-  const sort = document.getElementById("sort").value;
+  const sort = activeSort;
 
   const counts   = activeInstallCounts();
   const instList = activeInstalled();
@@ -1645,7 +1701,8 @@ function render() {
   const itemLabel = activeFilter === 'tools' ? 'tools' : 'plugins';
   document.getElementById("stats").innerHTML =
     `<em>${visibleCount}</em> of <em>${totalPool}</em> ${itemLabel}`;
-  document.getElementById("header-count").textContent = visibleCount;
+  const hc = document.getElementById('header-count'); if (hc) hc.textContent = visibleCount;
+  const tcAll = document.getElementById('tab-count-all'); if (tcAll) tcAll.textContent = visibleCount;
 
   // Grid
   const grid = document.getElementById("grid");
@@ -1744,13 +1801,13 @@ function render() {
     // Section dividers
     let divider = '';
     if (isDiscovered && i === 0 && establishedCount > 0) {
-      divider = `<div class="section-divider">Established — community-verified</div>`;
+      divider = `<div class="tier-divider"><span class="tier-label established">★ Established · 5+ stars</span><div class="tier-line"></div><span class="tier-count">${establishedCount}</span></div>`;
     } else if (isDiscovered && i === establishedCount && establishedCount > 0 && list.length > establishedCount) {
-      divider = `<div class="section-divider">Emerging — low stars</div>`;
+      divider = `<div class="tier-divider"><span class="tier-label new-tier">New &amp; Unverified</span><div class="tier-line"></div><span class="tier-count">${list.length - establishedCount}</span></div>`;
     } else if (isToolsTab && i === 0 && establishedCount > 0) {
-      divider = `<div class="section-divider tools-divider">Established — 25+ stars</div>`;
+      divider = `<div class="tier-divider"><span class="tier-label established">★ Established · 25+ stars</span><div class="tier-line"></div><span class="tier-count">${establishedCount}</span></div>`;
     } else if (isToolsTab && i === establishedCount && establishedCount > 0 && list.length > establishedCount) {
-      divider = `<div class="section-divider tools-divider">Emerging — low stars</div>`;
+      divider = `<div class="tier-divider"><span class="tier-label new-tier">New &amp; Unverified</span><div class="tier-line"></div><span class="tier-count">${list.length - establishedCount}</span></div>`;
     } else if (isAddedTab && (i === 0 || list[i - 1].marketplace !== p.marketplace)) {
       const mkt     = p.marketplace || 'unknown';
       const repo    = p.marketplaceRepo;
@@ -1766,40 +1823,56 @@ function render() {
       ? ` <span style="opacity:0.45;font-size:0.75em">· ${p.stars}★</span>`
       : '';
 
-    return `${divider}
-<div class="card${p.archived ? ' archived' : ''}" style="animation-delay:${delay}ms">
-  <div class="card-stripe ${stripeClass}"></div>
-  ${safeUrl ? `<a class="card-repo" href="${esc(safeUrl)}" target="_blank" rel="noopener" title="View repository">repo ↗</a>` : ''}
-  <div class="card-body">
-    <div class="card-type ${typeClass}">${typeBadge}</div>
-    <div class="card-name">
-      ${esc(p.name)}${p.installed ? ' <span class="installed-pip" title="Installed"></span>' : ''}${p.archived ? ' <span class="archived-badge" title="No longer actively maintained">archived</span>' : ''}
-    </div>
-    <div class="card-author">${isUnmonitored
-      ? `source: ${esc(p.marketplace || 'unknown')}`
-      : `by&nbsp;${esc(p.author)}${starInfo}`
-    }</div>
-    <div class="card-desc">${isUnmonitored && p.installedAt
-      ? `<span style="opacity:0.5;font-size:0.75em;font-family:var(--f-mono)">installed ${esc(new Date(p.installedAt).toLocaleDateString())}${p.version ? ' · v' + esc(p.version) : ''}</span>`
-      : esc(p.desc)
-    }</div>
-    ${(isToolEstablished || isToolNew) && p.topics?.length
-      ? `<div class="topic-pills">${p.topics.slice(0,6).map(t => `<span class="topic-pill">${esc(t)}</span>`).join('')}</div>`
-      : ''}
-  </div>
-  <div class="card-footer">
-    ${(()=>{
-      const isDisc = isEstablished || isNewPlugin;
-      const isTool = isToolEstablished || isToolNew;
-      const barPct = (isDisc || isTool) ? Math.min((p.stars || 0) / 500 * 100, 100) : pct;
-      const popTxt = (isDisc || isTool) ? (p.stars ? `★ ${p.stars}` : '—') : (count ? count + ' installs' : '—');
-      const popCls = ((isDisc || isTool) ? !!p.stars : !!count) ? 'has-data' : '';
-      return `<div class="pop-row">
-      <div class="pop-bar-wrap"><div class="pop-bar-fill ${fillClass}" style="width:${barPct}%;${fillStyle}"></div></div>
-      <div class="pop-count ${popCls}">${popTxt}</div>
-    </div>`;
-    })()}
-    ${(()=>{
+    // Icon class (2-char initials from name)
+    const iconClass = isEstablished || isNewPlugin ? 'icon-discovered'
+      : isToolEstablished || isToolNew ? 'icon-tools'
+      : isAdded ? 'icon-added'
+      : isUnmonitored ? 'icon-unmonitored'
+      : p.type === 'anthropic' ? 'icon-anthropic'
+      : p.type === 'external'  ? 'icon-external'
+      : 'icon-lsp';
+    const iconText = esc(p.name.slice(0,2).toUpperCase());
+
+    // Badge html (replaces old typeBadge)
+    const badgeHtml = isEstablished
+      ? '<span class="discovered-badge">plugin</span>'
+      : isNewPlugin
+      ? '<span class="new-plugin-badge">unverified</span>'
+      : isToolEstablished
+      ? '<span class="discovered-badge" style="background:var(--c-scout);color:#001a0d">tool</span>'
+      : isToolNew
+      ? '<span class="new-plugin-badge" style="border-color:rgba(52,211,153,0.4);color:rgba(52,211,153,0.7)">unverified</span>'
+      : isAdded
+      ? `<span class="added-badge">${esc(mktLabel)}</span>`
+      : isUnmonitored
+      ? '<span class="type-unmonitored">unmonitored</span>'
+      : '';
+
+    // Star bar (discovered/tools only)
+    const isDiscOrTool = isEstablished || isNewPlugin || isToolEstablished || isToolNew;
+    const starBarPct = isDiscOrTool ? Math.min((p.stars || 0) / 500 * 100, 100) : 0;
+    const starBarFillClass = (isToolEstablished || isToolNew) ? 'fill-tools' : 'fill-discovered';
+    const starBarHtml = isDiscOrTool
+      ? `<div class="star-bar-wrap"><div class="star-bar-track"><div class="star-bar-fill ${starBarFillClass}" style="width:${starBarPct}%"></div></div></div>`
+      : '';
+
+    // Footer right: stars or install count
+    const footerRight = isDiscOrTool
+      ? (p.stars ? `<span class="card-stars"><span class="star">★</span>${p.stars >= 1000 ? (p.stars/1000).toFixed(1)+'k' : p.stars}</span>` : '')
+      : (count    ? `<span class="card-stars">${count} installs</span>` : '');
+
+    // Tags
+    const tagsHtml = (() => {
+      if (isToolEstablished || isToolNew) return (p.topics||[]).slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+      if (p.type === 'anthropic') return `<span class="tag">anthropic</span>`;
+      if (p.type === 'external')  return `<span class="tag">mcp</span>`;
+      if (p.type === 'lsp')       return `<span class="tag">lsp</span>`;
+      if (isAdded)                return (p.keywords||[]).slice(0,3).map(k=>`<span class="tag">${esc(k)}</span>`).join('');
+      return '';
+    })();
+
+    // Install cmd html
+    const installHtml = (() => {
       const isTool = isToolEstablished || isToolNew;
       if (isTool) {
         if (p.installHint) {
@@ -1811,7 +1884,6 @@ function render() {
       if (p.installed) {
         return `<div class="install-cmd installed-cmd" onclick="copyCmd('${esc(installCmd)}')" title="Click to copy"><span class="prompt">✓</span>${esc(installCmd)}</div>`;
       }
-      // Added plugins: marketplace already added — no two-step needed
       const mktRepo = isEstablished || isNewPlugin ? p.repo : null;
       const mktAdded = mktRepo && liveMarketplaces?.some(m => {
         const slug = mktRepo.replace('/', '-');
@@ -1826,9 +1898,30 @@ function render() {
         </div>`;
       }
       return `<div class="install-cmd" onclick="copyCmd('${esc(installCmd)}')" title="Click to copy"><span class="prompt">$</span>${esc(installCmd)}</div>`;
-    })()}
+    })();
+
+    return `${divider}
+<div class="card${p.archived ? ' archived' : ''}" style="animation-delay:${delay}ms">
+  <div class="card-top">
+    <div class="card-icon ${iconClass}">${iconText}</div>
+    <div class="card-name-wrap">
+      <div class="card-name">${esc(p.name)}${p.installed ? ' <span class="installed-pip" title="Installed"></span>' : ''}${p.archived ? ' <span class="archived-badge">archived</span>' : ''}</div>
+      <div class="card-author">${isUnmonitored ? `source: ${esc(p.marketplace||'unknown')}` : `@${esc(p.author)}${starInfo}`}</div>
+    </div>
+    <div class="card-badges">${badgeHtml}</div>
   </div>
+  <div class="card-desc">${isUnmonitored && p.installedAt
+    ? `<span style="opacity:0.5;font-size:0.75em;font-family:var(--f-mono)">installed ${esc(new Date(p.installedAt).toLocaleDateString())}${p.version?' · v'+esc(p.version):''}</span>`
+    : esc(p.desc)}</div>
+  ${starBarHtml}
+  ${(isToolEstablished||isToolNew)&&p.topics?.length ? `<div class="topic-pills">${p.topics.slice(0,5).map(t=>`<span class="topic-pill">${esc(t)}</span>`).join('')}</div>` : ''}
+  <div class="card-footer">
+    <div class="card-tags">${tagsHtml}</div>
+    ${footerRight}
+  </div>
+  ${installHtml}
   ${securityStrip}
+  ${safeUrl ? `<a class="card-repo" href="${esc(safeUrl)}" target="_blank" rel="noopener">repo ↗</a>` : ''}
   <span class="ignore-link" onclick="ignorePlugin('${esc(p.name)}')">ignore</span>
 </div>`;
   }).join("");
@@ -1852,21 +1945,23 @@ function render() {
       const ignoredBarPct = isTool ? Math.min((p.stars || 0) / 500 * 100, 100) : pct;
       const ignoredPopTxt = isTool ? (p.stars ? `★ ${p.stars}` : '—') : (count ? count + ' installs' : '—');
       const ignoredPopCls = isTool ? (p.stars ? 'has-data' : '') : (count ? 'has-data' : '');
+      const ignoredIconClass = isTool ? 'icon-tools'
+        : p.tier ? 'icon-discovered'
+        : `icon-${p.type ?? 'external'}`;
       return `<div class="card card-ignored">
-  <div class="card-stripe ${stripe}"></div>
-  ${safeUrl ? `<a class="card-repo" href="${esc(safeUrl)}" target="_blank" rel="noopener">repo ↗</a>` : ''}
-  <div class="card-body">
-    <div class="card-type ${isTool ? 'type-tools' : `type-${esc(p.type ?? 'external')}`}">${isTool ? 'tool' : esc(typeLabel)}</div>
-    <div class="card-name">${esc(p.name)}</div>
-    <div class="card-author">by&nbsp;${esc(p.author)}</div>
-    <div class="card-desc">${esc(p.desc)}</div>
-  </div>
-  <div class="card-footer">
-    <div class="pop-row">
-      <div class="pop-bar-wrap"><div class="pop-bar-fill ${fill}" style="width:${ignoredBarPct}%"></div></div>
-      <div class="pop-count ${ignoredPopCls}">${ignoredPopTxt}</div>
+  <div class="card-top">
+    <div class="card-icon ${ignoredIconClass}">${esc(p.name.slice(0,2).toUpperCase())}</div>
+    <div class="card-name-wrap">
+      <div class="card-name">${esc(p.name)}</div>
+      <div class="card-author">@${esc(p.author)}</div>
     </div>
   </div>
+  <div class="card-desc">${esc(p.desc)}</div>
+  <div class="card-footer">
+    <div class="card-tags"></div>
+    ${ignoredPopTxt ? `<span class="card-stars">${ignoredPopTxt}</span>` : ''}
+  </div>
+  ${safeUrl ? `<a class="card-repo" href="${esc(safeUrl)}" target="_blank" rel="noopener">repo ↗</a>` : ''}
   <span class="unignore-link" onclick="unignorePlugin('${esc(p.name)}')">unignore</span>
 </div>`;
     }).join("");
