@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Scout — Plugin Browser</title>
+<meta name="description" content="Discover plugins and MCP tools for Claude Code. Browse official plugins from Anthropic, community extensions, and MCP tool servers.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #0a0a0b;
+  --surface:    #101013;
+  --surface2:   #161619;
+  --surface3:   #1c1c21;
+  --border:     #1e1e24;
+  --border2:    #28282f;
+  --text:       #f2ede3;
+  --muted:      #72707e;
+  --muted2:     #4a4855;
+  --accent:     #34d399;
+  --accent-dim: #0d2e22;
+  --orange:     #e07a52;
+  --orange-dim: #2a1a12;
+  --gold:       #e0c04a;
+  --blue:       #4a9fe0;
+  --purple:     #9a7ae0;
+  --c-scout:    #34d399;
+
+  --f-display: 'Syne', sans-serif;
+  --f-mono:    'JetBrains Mono', monospace;
+  --f-body:    'Outfit', sans-serif;
+
+  --radius:    8px;
+  --radius-sm: 5px;
+}
+
+html { font-size: 15px; }
+body {
+  font-family: var(--f-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Top banner ──────────────────────────────────── */
+.top-banner {
+  background: var(--accent-dim);
+  border-bottom: 1px solid #1a4030;
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-family: var(--f-mono);
+  position: relative;
+  z-index: 10;
+}
+.top-banner a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  opacity: 0.8;
+}
+.top-banner a:hover { opacity: 1; }
+
+/* ── Header ──────────────────────────────────────── */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10,10,11,0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.header-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  margin-right: 32px;
+  flex-shrink: 0;
+}
+.logo-mark {
+  width: 26px;
+  height: 26px;
+  background: linear-gradient(135deg, var(--accent) 0%, #1fa375 100%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-family: var(--f-mono);
+  color: #0a0a0b;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.logo-text {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.logo-badge {
+  font-size: 0.6rem;
+  font-family: var(--f-mono);
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid #1a4030;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-left: 2px;
+}
+.header-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+.header-tab {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  background: none;
+  font-family: var(--f-body);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  position: relative;
+}
+.header-tab:hover { color: var(--text); background: var(--surface2); }
+.header-tab.active { color: var(--text); background: var(--surface2); }
+.header-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 14px;
+  right: 14px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+.tab-count {
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  background: var(--surface3);
+  color: var(--muted);
+  padding: 1px 5px;
+  border-radius: 3px;
+  min-width: 20px;
+  text-align: center;
+}
+.header-tab.active .tab-count { background: var(--border2); color: var(--text); }
+.header-tab.locked { opacity: 0.55; }
+.header-tab.locked:hover { opacity: 0.8; }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  padding-left: 16px;
+  flex-shrink: 0;
+}
+.btn-install {
+  padding: 7px 16px;
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: var(--f-body);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-install:hover { background: #e88a68; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(224,122,82,0.35); }
+.btn-ghost {
+  padding: 6px 12px;
+  background: none;
+  color: var(--muted);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-family: var(--f-body);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--muted2); }
+
+/* ── Hero ────────────────────────────────────────── */
+.hero {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 52px 24px 40px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 32px;
+}
+.hero-eyebrow {
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hero-eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 1px;
+  background: var(--accent);
+}
+.hero-title {
+  font-family: var(--f-display);
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
+}
+.hero-title em { color: var(--accent); font-style: normal; }
+.hero-subtitle {
+  font-size: 0.95rem;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 520px;
+}
+.hero-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  min-width: 160px;
+}
+.stat-block { display: flex; flex-direction: column; gap: 2px; }
+.stat-num {
+  font-family: var(--f-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+}
+.stat-num.green { color: var(--accent); }
+.stat-label { font-size: 0.75rem; color: var(--muted2); font-family: var(--f-mono); text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* ── Filter bar ──────────────────────────────────── */
+.filter-section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px 16px;
+}
+.filter-bar {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 140px;
+}
+.search-icon { color: var(--muted2); font-size: 1.1rem; }
+.search-input {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-family: var(--f-mono);
+  width: 100%;
+}
+.search-input::placeholder { color: var(--muted2); }
+.filter-divider { width: 1px; height: 22px; background: var(--border2); flex-shrink: 0; }
+.sort-group { display: flex; gap: 4px; }
+.sort-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-family: var(--f-body);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.sort-btn:hover { color: var(--text); background: var(--surface2); }
+.sort-btn.active { color: var(--text); background: var(--surface3); }
+.filter-chips { display: flex; gap: 4px; }
+.filter-chip {
+  padding: 4px 10px;
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  background: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-family: var(--f-mono);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.filter-chip:hover { color: var(--text); border-color: var(--muted2); }
+.filter-chip.active { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+
+/* ── Tab panels ──────────────────────────────────── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Grid ────────────────────────────────────────── */
+.grid-outer { max-width: 1180px; margin: 0 auto; padding: 0 24px 80px; }
+.grid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.grid-title { font-family: var(--f-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.grid-count { font-family: var(--f-mono); font-size: 0.7rem; color: var(--muted2); }
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 10px;
+}
+
+/* ── Tier dividers ───────────────────────────────── */
+.tier-divider {
+  grid-column: 1/-1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 0 12px;
+}
+.tier-label {
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tier-label.established { color: var(--gold); }
+.tier-label.founding    { color: #fb923c; }
+.tier-label.new-tier    { color: #38bdf8; }
+.tier-line { flex: 1; height: 1px; background: var(--border); }
+.tier-count {
+  font-family: var(--f-mono);
+  font-size: 0.65rem;
+  color: var(--muted2);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+/* ── Cards ───────────────────────────────────────── */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.p-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: cardIn 0.22s ease both;
+  position: relative;
+}
+.p-card:hover { border-color: var(--border2); }
+.card-top { display: flex; align-items: flex-start; gap: 10px; }
+.card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+}
+.icon-anthropic  { background: rgba(52,211,153,0.08);  color: var(--accent);  border-color: rgba(52,211,153,0.18); }
+.icon-external   { background: rgba(74,159,224,0.08);  color: var(--blue);    border-color: rgba(74,159,224,0.18); }
+.icon-lsp        { background: rgba(154,122,224,0.08); color: var(--purple);  border-color: rgba(154,122,224,0.18); }
+.icon-discovered { background: rgba(74,159,224,0.08);  color: var(--blue);    border-color: rgba(74,159,224,0.18); }
+.icon-tools      { background: rgba(154,122,224,0.08); color: var(--purple);  border-color: rgba(154,122,224,0.18); }
+.card-name-wrap { flex: 1; min-width: 0; }
+.card-name {
+  font-family: var(--f-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-author { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+.card-badges { display: flex; gap: 4px; align-items: flex-start; flex-shrink: 0; }
+.badge {
+  font-family: var(--f-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.badge-official  { background: rgba(52,211,153,0.1);  color: var(--accent); border-color: rgba(52,211,153,0.25); }
+.badge-external  { background: rgba(74,159,224,0.1);  color: var(--blue);   border-color: rgba(74,159,224,0.25); }
+.badge-lsp       { background: rgba(154,122,224,0.1); color: var(--purple); border-color: rgba(154,122,224,0.25); }
+.badge-disc      { background: rgba(74,159,224,0.1);  color: var(--blue);   border-color: rgba(74,159,224,0.25); opacity:0.8; }
+.badge-unverified{ background: transparent; color: var(--muted); border-color: var(--border2); }
+.badge-tool      { background: rgba(154,122,224,0.1); color: var(--purple); border-color: rgba(154,122,224,0.25); }
+.card-desc {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+.star-bar-wrap { }
+.star-bar-track { height: 2px; background: var(--border2); border-radius: 1px; }
+.star-bar-fill  { height: 2px; border-radius: 1px; background: var(--blue); transition: width 0.3s; }
+.star-bar-fill.fill-tools { background: var(--purple); }
+.card-footer { display: flex; align-items: center; justify-content: space-between; }
+.card-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.tag {
+  font-family: var(--f-mono);
+  font-size: 0.62rem;
+  color: var(--muted2);
+  background: var(--surface3);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.card-stars {
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.card-stars .star { color: var(--gold); font-size: 0.6rem; }
+.install-cmd {
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.install-cmd:hover { border-color: var(--accent); color: var(--text); }
+.install-cmd .prompt { color: var(--accent); margin-right: 6px; }
+.topic-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+.topic-pill {
+  font-family: var(--f-mono);
+  font-size: 0.62rem;
+  color: var(--purple);
+  background: rgba(154,122,224,0.08);
+  border: 1px solid rgba(154,122,224,0.2);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* ── Loading / empty states ──────────────────────── */
+.loading-row {
+  grid-column: 1/-1;
+  padding: 48px 0;
+  text-align: center;
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  color: var(--muted2);
+}
+.empty-row {
+  grid-column: 1/-1;
+  padding: 32px 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted2);
+}
+
+/* ── Locked / installed panel ────────────────────── */
+.locked-panel {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 24px 80px;
+}
+.locked-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 48px;
+}
+.locked-eyebrow {
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+.locked-title {
+  font-family: var(--f-display);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+}
+.locked-title span { color: var(--accent); }
+.locked-body { font-size: 0.88rem; color: var(--muted); line-height: 1.6; margin-bottom: 16px; }
+.locked-cta-row { display: flex; gap: 10px; margin-bottom: 20px; }
+.btn-primary {
+  padding: 9px 20px;
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: var(--f-body);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-primary:hover { background: #e88a68; }
+.btn-outline {
+  padding: 9px 20px;
+  background: none;
+  color: var(--muted);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-family: var(--f-body);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-outline:hover { color: var(--text); border-color: var(--muted2); }
+.install-box {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--f-mono);
+  font-size: 0.78rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.12s;
+  width: fit-content;
+}
+.install-box:hover { border-color: var(--accent); }
+.install-prompt { color: var(--accent); }
+.install-copy { margin-left: auto; font-size: 0.65rem; color: var(--muted2); font-family: var(--f-body); padding: 2px 6px; border: 1px solid var(--border2); border-radius: 3px; transition: all 0.12s; }
+.install-box:hover .install-copy { color: var(--accent); border-color: var(--accent); }
+.feature-list { display: flex; flex-direction: column; gap: 20px; }
+.feature-item { display: flex; align-items: flex-start; gap: 14px; }
+.feature-icon { width: 32px; height: 32px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.feature-icon.green { background: var(--accent-dim); }
+.feature-icon.orange { background: var(--orange-dim); }
+.feature-title { font-weight: 600; font-size: 0.88rem; margin-bottom: 3px; }
+.feature-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+
+/* ── Footer CTA ──────────────────────────────────── */
+.footer-cta {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 20px 24px;
+}
+.footer-cta-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.footer-cta-headline { font-size: 1rem; font-weight: 700; margin-bottom: 3px; }
+.footer-cta-sub { font-size: 0.8rem; color: var(--muted); }
+.footer-cta-sub code { font-family: var(--f-mono); font-size: 0.75rem; color: var(--accent); background: var(--accent-dim); padding: 1px 6px; border-radius: 3px; }
+
+/* ── Footer ──────────────────────────────────────── */
+footer { border-top: 1px solid var(--border); padding: 16px 24px; }
+.footer-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.footer-freshness { font-family: var(--f-mono); font-size: 0.68rem; color: var(--muted2); display: flex; align-items: center; gap: 6px; }
+.freshness-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2.4s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.footer-links { display: flex; gap: 14px; }
+.footer-link { color: var(--muted); text-decoration: none; font-size: 0.75rem; transition: color 0.12s; }
+.footer-link:hover { color: var(--text); }
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 780px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-stats { justify-self: start; }
+  .locked-inner { grid-template-columns: 1fr; }
+  .footer-cta-inner { flex-direction: column; align-items: flex-start; }
+  .hero-title { font-size: 2rem; }
+}
+@media (max-width: 580px) {
+  .header-tab:not(.active) .tab-count { display: none; }
+  .logo-badge { display: none; }
+  .header-actions .btn-ghost { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="top-banner">
+  This is the public discovery view.
+  <a href="#" onclick="showInstallPanel();return false">Install Claude Scout locally</a>
+  for your installed plugins, custom marketplaces &amp; more.
+</div>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="#">
+      <div class="logo-mark">CS</div>
+      <span class="logo-text">Claude Scout</span>
+      <span class="logo-badge">Web</span>
+    </a>
+    <div class="header-tabs">
+      <button class="header-tab active" data-tab="official">
+        Official <span class="tab-count" id="cnt-official">—</span>
+      </button>
+      <button class="header-tab" data-tab="discovered">
+        Discovered <span class="tab-count" id="cnt-discovered">—</span>
+      </button>
+      <button class="header-tab" data-tab="tools">
+        Tools <span class="tab-count" id="cnt-tools">—</span>
+      </button>
+      <button class="header-tab locked" data-tab="installed">
+        🔒 Installed
+      </button>
+    </div>
+    <div class="header-actions">
+      <button class="btn-ghost" onclick="window.open('https://github.com/devycelabs/claude-scout','_blank')">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </button>
+      <button class="btn-install" onclick="showInstallPanel()">Install Claude Scout</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-eyebrow">Plugin ecosystem</div>
+      <h1 class="hero-title">Discover plugins &amp; tools<br>for <em>Claude Code</em></h1>
+      <p class="hero-subtitle">Browse official plugins from Anthropic, community-built extensions, and MCP tool servers — all crawled automatically from GitHub.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-block">
+        <span class="stat-num green" id="stat-discovered">—</span>
+        <span class="stat-label">Plugins</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-num green" id="stat-tools">—</span>
+        <span class="stat-label">MCP Tools</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-num" id="stat-official">—</span>
+        <span class="stat-label">Official</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-section">
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input class="search-input" id="search-input" type="search" placeholder="Search..." autocomplete="off" spellcheck="false">
+      </div>
+      <div class="filter-divider"></div>
+      <div class="sort-group">
+        <button class="sort-btn active" data-sort="popular">Popular</button>
+        <button class="sort-btn" data-sort="az">A–Z</button>
+      </div>
+      <div class="filter-divider" id="tier-filter-divider" style="display:none"></div>
+      <div class="filter-chips" id="tier-filters" style="display:none">
+        <button class="filter-chip active" data-tier="all">All</button>
+        <button class="filter-chip" data-tier="established">★ Established</button>
+        <button class="filter-chip" data-tier="founding">Founding</button>
+        <button class="filter-chip" data-tier="new">New</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Official tab -->
+  <div class="tab-panel active" id="panel-official">
+    <div class="grid-outer">
+      <div class="grid-header">
+        <span class="grid-title">Official Plugins</span>
+        <span class="grid-count" id="official-count"></span>
+      </div>
+      <div class="card-grid" id="grid-official">
+        <div class="loading-row">Loading official plugins…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Discovered tab -->
+  <div class="tab-panel" id="panel-discovered">
+    <div class="grid-outer">
+      <div class="card-grid" id="grid-discovered">
+        <div class="loading-row">Loading discovered plugins…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tools tab -->
+  <div class="tab-panel" id="panel-tools">
+    <div class="grid-outer">
+      <div class="card-grid" id="grid-tools">
+        <div class="loading-row">Loading MCP tools…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Installed (locked) tab -->
+  <div class="tab-panel" id="panel-installed">
+    <div class="locked-panel">
+      <div class="locked-inner">
+        <div class="locked-left">
+          <div class="locked-eyebrow">🔒 Local only</div>
+          <h2 class="locked-title">Your <span>installed</span><br>plugins live here</h2>
+          <p class="locked-body">
+            Claude Scout reads your local <code style="font-family:var(--f-mono);font-size:0.8rem;color:var(--accent);background:var(--accent-dim);padding:1px 5px;border-radius:3px">~/.claude/plugins/</code> directory to show exactly what you've installed — including versions, status, and plugins not tracked by any registry.
+          </p>
+          <p class="locked-body">
+            This view isn't available on the web because your plugin list is local to your machine. Install Claude Scout to get the full picture.
+          </p>
+          <div class="locked-cta-row">
+            <button class="btn-primary" onclick="copyInstall(event)">Install Claude Scout</button>
+            <button class="btn-outline" onclick="window.open('https://github.com/devycelabs/claude-scout','_blank')">View README</button>
+          </div>
+          <div class="install-box" onclick="copyInstall(event)">
+            <span class="install-prompt">$</span>
+            <span>claude plugin install devycelabs/claude-scout</span>
+            <span class="install-copy">copy</span>
+          </div>
+        </div>
+        <div class="locked-right">
+          <div class="feature-list">
+            <div class="feature-item">
+              <div class="feature-icon green">📦</div>
+              <div class="feature-text">
+                <div class="feature-title">Installed plugins</div>
+                <div class="feature-desc">See all installed plugins with version info and health status</div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon green">🔍</div>
+              <div class="feature-text">
+                <div class="feature-title">Unmonitored tab</div>
+                <div class="feature-desc">Discover installed plugins not tracked by any registry</div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon green">➕</div>
+              <div class="feature-text">
+                <div class="feature-title">Custom marketplaces</div>
+                <div class="feature-desc">Add and browse your own plugin repositories</div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon orange">🔧</div>
+              <div class="feature-text">
+                <div class="feature-title">MCP tools status</div>
+                <div class="feature-desc">See which MCP servers are configured in your settings</div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon orange">🔄</div>
+              <div class="feature-text">
+                <div class="feature-title">Real-time sync</div>
+                <div class="feature-desc">Live filesystem reads — no stale cache</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="footer-cta" id="footer-cta-strip">
+  <div class="footer-cta-inner">
+    <div>
+      <div class="footer-cta-headline">Get the full experience</div>
+      <div class="footer-cta-sub">
+        See your installed plugins &amp; MCP tools. Run <code>claude plugin install devycelabs/claude-scout</code> to get started.
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-shrink:0">
+      <button class="btn-ghost" onclick="window.open('https://github.com/devycelabs/claude-scout','_blank')">View docs</button>
+      <button class="btn-install" onclick="showInstallPanel()">Install locally →</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-freshness">
+      <div class="freshness-dot"></div>
+      <span id="freshness-text">Loading data…</span>
+    </div>
+    <div class="footer-links">
+      <a class="footer-link" href="https://github.com/devycelabs/claude-scout" target="_blank" rel="noopener">GitHub</a>
+      <a class="footer-link" href="https://github.com/devycelabs/claude-scout/blob/main/PRIVACY.md" target="_blank" rel="noopener">Privacy</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+'use strict';
+
+// ── Constants ────────────────────────────────────────────────
+const DISCOVERED_URL = 'https://raw.githubusercontent.com/devycelabs/claude-plugin-browser-data/main/discovered.json';
+const OFFICIAL_URL   = './official.json';
+
+// ── State ────────────────────────────────────────────────────
+let officialData    = [];
+let discoveredData  = [];  // all plugins from discovered.json
+let toolsData       = [];  // tools array from discovered.json
+let generatedAt     = null;
+let activeTab       = 'official';
+let activeSort      = 'popular';
+let activeTier      = 'all';
+let searchQ         = '';
+
+// ── Helpers ──────────────────────────────────────────────────
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function fmt(n) {
+  if (!n) return '';
+  return n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n);
+}
+
+function starTier(p) {
+  const s = p.stars || 0;
+  return s >= 25 ? 'established' : s >= 5 ? 'founding' : 'new';
+}
+
+function sortList(arr) {
+  const copy = [...arr];
+  if (activeSort === 'popular') copy.sort((a,b) => (b.stars||0) - (a.stars||0));
+  else copy.sort((a,b) => a.name.localeCompare(b.name));
+  return copy;
+}
+
+function matchesSearch(p) {
+  if (!searchQ) return true;
+  const hay = [p.name, p.description, p.desc, p.author, ...(p.keywords||[]), ...(p.tags||[]), ...(p.topics||[])].join(' ').toLowerCase();
+  return hay.includes(searchQ);
+}
+
+// ── Icon ──────────────────────────────────────────────────────
+function iconHtml(name, cls) {
+  return `<div class="card-icon ${esc(cls)}">${esc((name||'??').slice(0,2).toUpperCase())}</div>`;
+}
+
+// ── Star bar ──────────────────────────────────────────────────
+function starBarHtml(stars, fillCls = '') {
+  const pct = Math.min(100, ((stars||0) / 500) * 100).toFixed(1);
+  return `<div class="star-bar-wrap"><div class="star-bar-track"><div class="star-bar-fill ${fillCls}" style="width:${pct}%"></div></div></div>`;
+}
+
+function starsHtml(n) {
+  if (!n) return '';
+  return `<span class="card-stars"><span class="star">★</span>${n >= 1000 ? (n/1000).toFixed(1)+'k' : n}</span>`;
+}
+
+// ── Render: official card ─────────────────────────────────────
+function renderOfficialCard(p, delay) {
+  const badgeCls = p.type === 'external' ? 'badge-external' : p.type === 'lsp' ? 'badge-lsp' : 'badge-official';
+  const badgeTxt = p.type === 'external' ? 'MCP' : p.type === 'lsp' ? 'LSP' : 'Official';
+  const iconCls  = p.type === 'external' ? 'icon-external' : p.type === 'lsp' ? 'icon-lsp' : 'icon-anthropic';
+  const desc = (p.description||'').length > 400 ? p.description.slice(0,400)+'…' : (p.description||'');
+  const tags = (p.keywords||[]).slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+  const install = `/plugin install ${p.name}`;
+  return `<div class="p-card" style="animation-delay:${delay}ms">
+  <div class="card-top">
+    ${iconHtml(p.name, iconCls)}
+    <div class="card-name-wrap">
+      <div class="card-name">${esc(p.name)}</div>
+      <div class="card-author">@${esc(p.author)}</div>
+    </div>
+    <div class="card-badges"><span class="badge ${badgeCls}">${badgeTxt}</span></div>
+  </div>
+  <div class="card-desc">${esc(desc)}</div>
+  <div class="card-footer">
+    <div class="card-tags">${tags}</div>
+  </div>
+  <div class="install-cmd" onclick="copyCmd('${esc(install)}')" title="Click to copy"><span class="prompt">$</span>${esc(install)}</div>
+</div>`;
+}
+
+// ── Render: discovered card ───────────────────────────────────
+function renderDiscCard(p, delay) {
+  const tier   = starTier(p);
+  const badgeCls = tier === 'established' ? 'badge-disc' : 'badge-unverified';
+  const badgeTxt = tier === 'established' ? 'plugin' : tier === 'founding' ? 'plugin' : 'unverified';
+  const badgeOp  = tier === 'founding' ? ' style="opacity:0.7"' : '';
+  const desc = (p.description||p.desc||'').length > 400 ? (p.description||p.desc||'').slice(0,400)+'…' : (p.description||p.desc||'');
+  const tags = (p.keywords||p.tags||[]).slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+  const installCmd = p.repo
+    ? `/plugin marketplace add ${p.repo}\n/plugin install ${p.name}`
+    : `/plugin install ${p.name}`;
+  return `<div class="p-card" style="animation-delay:${delay}ms">
+  <div class="card-top">
+    ${iconHtml(p.name, 'icon-discovered')}
+    <div class="card-name-wrap">
+      <div class="card-name">${esc(p.name)} <span style="opacity:0.4;font-size:0.7rem;font-family:var(--f-mono)">· ${p.stars||0}★</span></div>
+      <div class="card-author">@${esc(p.author||p.owner||'')}</div>
+    </div>
+    <div class="card-badges"><span class="badge ${badgeCls}"${badgeOp}>${badgeTxt}</span></div>
+  </div>
+  <div class="card-desc">${esc(desc)}</div>
+  ${starBarHtml(p.stars)}
+  <div class="card-footer">
+    <div class="card-tags">${tags}</div>
+    ${starsHtml(p.stars)}
+  </div>
+  <div class="install-cmd" onclick="copyCmd('${esc(installCmd)}')" title="Click to copy">${
+    p.repo
+      ? `<span class="prompt">$</span>/plugin install ${esc(p.name)}`
+      : `<span class="prompt">$</span>/plugin install ${esc(p.name)}`
+  }</div>
+</div>`;
+}
+
+// ── Render: tool card ─────────────────────────────────────────
+function renderToolCard(t, delay) {
+  const desc = (t.description||t.desc||'').length > 400 ? (t.description||t.desc||'').slice(0,400)+'…' : (t.description||t.desc||'');
+  const topics = (t.topics||[]).slice(0,3).map(tp=>`<span class="topic-pill">${esc(tp)}</span>`).join('');
+  const installEl = t.installHint
+    ? `<div class="install-cmd" onclick="copyCmd('${esc(t.installHint)}')" title="Click to copy"><span class="prompt">$</span>${esc(t.installHint)}</div>`
+    : (t.repoUrl||t.url) ? `<a class="install-cmd" href="${esc(t.repoUrl||t.url)}" target="_blank" rel="noopener" style="text-decoration:none">View on GitHub ↗</a>` : '';
+  return `<div class="p-card" style="animation-delay:${delay}ms">
+  <div class="card-top">
+    ${iconHtml(t.name, 'icon-tools')}
+    <div class="card-name-wrap">
+      <div class="card-name">${esc(t.name)} <span style="opacity:0.4;font-size:0.7rem;font-family:var(--f-mono)">· ${t.stars||0}★</span></div>
+      <div class="card-author">@${esc(t.author||t.owner||'')}</div>
+    </div>
+    <div class="card-badges"><span class="badge badge-tool">MCP</span></div>
+  </div>
+  <div class="card-desc">${esc(desc)}</div>
+  ${starBarHtml(t.stars, 'fill-tools')}
+  ${topics ? `<div class="topic-pills">${topics}</div>` : ''}
+  <div class="card-footer">
+    <div class="card-tags"></div>
+    ${starsHtml(t.stars)}
+  </div>
+  ${installEl}
+</div>`;
+}
+
+// ── Tier divider ──────────────────────────────────────────────
+function tierDiv(labelCls, labelTxt, count) {
+  return `<div class="tier-divider" style="grid-column:1/-1"><span class="tier-label ${labelCls}">${labelTxt}</span><div class="tier-line"></div><span class="tier-count">${count}</span></div>`;
+}
+
+// ── Render official grid ──────────────────────────────────────
+function renderOfficial() {
+  let items = officialData.filter(matchesSearch);
+  if (activeSort === 'az') items.sort((a,b) => a.name.localeCompare(b.name));
+  else items.sort((a,b) => a.name.localeCompare(b.name)); // official has no stars; always A-Z
+  const grid = document.getElementById('grid-official');
+  document.getElementById('official-count').textContent = `Showing ${items.length} of ${officialData.length} plugins`;
+  if (!items.length) { grid.innerHTML = '<div class="empty-row">No plugins match your search.</div>'; return; }
+  grid.innerHTML = items.map((p, i) => renderOfficialCard(p, Math.min(i*20,400))).join('');
+}
+
+// ── Render discovered grid ────────────────────────────────────
+function renderDiscovered() {
+  const starTierFn = p => (p.stars||0) >= 25 ? 0 : (p.stars||0) >= 5 ? 1 : 2;
+  let items = discoveredData.filter(matchesSearch);
+  if (activeTier !== 'all') {
+    const tierMap = { established: 0, founding: 1, new: 2 };
+    items = items.filter(p => starTierFn(p) === tierMap[activeTier]);
+  }
+  items = [...items].sort((a,b) => {
+    if (activeSort === 'popular') return (starTierFn(a) - starTierFn(b)) || (b.stars||0) - (a.stars||0);
+    return (starTierFn(a) - starTierFn(b)) || a.name.localeCompare(b.name);
+  });
+  const estCount  = items.filter(p => (p.stars||0) >= 25).length;
+  const fndCount  = items.filter(p => { const s=p.stars||0; return s>=5&&s<25; }).length;
+  const newCount  = items.length - estCount - fndCount;
+  const grid = document.getElementById('grid-discovered');
+  if (!items.length) { grid.innerHTML = '<div class="empty-row">No plugins match your search.</div>'; return; }
+  let html = '';
+  items.forEach((p, i) => {
+    if (i === 0 && estCount > 0) html += tierDiv('established', '★ Established · 25+ stars', estCount);
+    if (i === estCount && fndCount > 0) html += tierDiv('founding', 'Founding · 5–24 stars', fndCount);
+    if (i === estCount + fndCount && newCount > 0 && (estCount > 0 || fndCount > 0)) html += tierDiv('new-tier', 'New &amp; Unverified · &lt;5 stars', newCount);
+    html += renderDiscCard(p, Math.min(i*18,400));
+  });
+  grid.innerHTML = html;
+}
+
+// ── Render tools grid ─────────────────────────────────────────
+function renderTools() {
+  const starTierFn = p => (p.stars||0) >= 25 ? 0 : (p.stars||0) >= 5 ? 1 : 2;
+  let items = toolsData.filter(matchesSearch);
+  if (activeTier !== 'all') {
+    const tierMap = { established: 0, founding: 1, new: 2 };
+    items = items.filter(p => starTierFn(p) === tierMap[activeTier]);
+  }
+  items = [...items].sort((a,b) => {
+    if (activeSort === 'popular') return (starTierFn(a) - starTierFn(b)) || (b.stars||0) - (a.stars||0);
+    return (starTierFn(a) - starTierFn(b)) || a.name.localeCompare(b.name);
+  });
+  const estCount  = items.filter(p => (p.stars||0) >= 25).length;
+  const fndCount  = items.filter(p => { const s=p.stars||0; return s>=5&&s<25; }).length;
+  const newCount  = items.length - estCount - fndCount;
+  const grid = document.getElementById('grid-tools');
+  if (!items.length) { grid.innerHTML = '<div class="empty-row">No tools match your search.</div>'; return; }
+  let html = '';
+  items.forEach((t, i) => {
+    if (i === 0 && estCount > 0) html += tierDiv('established', '★ Established · 25+ stars', estCount);
+    if (i === estCount && fndCount > 0) html += tierDiv('founding', 'Founding · 5–24 stars', fndCount);
+    if (i === estCount + fndCount && newCount > 0 && (estCount > 0 || fndCount > 0)) html += tierDiv('new-tier', 'New &amp; Unverified · &lt;5 stars', newCount);
+    html += renderToolCard(t, Math.min(i*18,400));
+  });
+  grid.innerHTML = html;
+}
+
+// ── Master render ─────────────────────────────────────────────
+function render() {
+  if (activeTab === 'official')    renderOfficial();
+  if (activeTab === 'discovered')  renderDiscovered();
+  if (activeTab === 'tools')       renderTools();
+}
+
+// ── Tab switching ─────────────────────────────────────────────
+document.querySelectorAll('.header-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const key = tab.dataset.tab;
+    if (!key) return;
+    document.querySelectorAll('.header-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + key).classList.add('active');
+    activeTab = key;
+    searchQ = '';
+    document.getElementById('search-input').value = '';
+    activeTier = 'all';
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.tier === 'all'));
+    const showTier = key === 'discovered' || key === 'tools';
+    document.getElementById('tier-filters').style.display       = showTier ? '' : 'none';
+    document.getElementById('tier-filter-divider').style.display = showTier ? '' : 'none';
+    document.getElementById('footer-cta-strip').style.display   = key === 'installed' ? 'none' : '';
+    render();
+  });
+});
+
+// ── Search ────────────────────────────────────────────────────
+document.getElementById('search-input').addEventListener('input', e => {
+  searchQ = e.target.value.toLowerCase().trim();
+  render();
+});
+
+// ── Sort ──────────────────────────────────────────────────────
+document.querySelectorAll('.sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeSort = btn.dataset.sort;
+    render();
+  });
+});
+
+// ── Tier filter ───────────────────────────────────────────────
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeTier = chip.dataset.tier;
+    render();
+  });
+});
+
+// ── Copy ──────────────────────────────────────────────────────
+function copyCmd(cmd) {
+  navigator.clipboard?.writeText(cmd).catch(() => {});
+}
+
+function copyInstall(e) {
+  const cmd = 'claude plugin install devycelabs/claude-scout';
+  navigator.clipboard?.writeText(cmd).catch(() => {});
+  const copyEl = (e.currentTarget || e.target).querySelector?.('.install-copy');
+  if (copyEl) {
+    copyEl.textContent = 'copied!';
+    copyEl.style.color = 'var(--accent)';
+    setTimeout(() => { copyEl.textContent = 'copy'; copyEl.style.color = ''; }, 1800);
+  }
+}
+
+function showInstallPanel() {
+  document.querySelectorAll('.header-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-tab="installed"]').classList.add('active');
+  document.getElementById('panel-installed').classList.add('active');
+  document.getElementById('footer-cta-strip').style.display = 'none';
+  activeTab = 'installed';
+}
+
+// ── Data loading ──────────────────────────────────────────────
+async function loadOfficial() {
+  try {
+    const res  = await fetch(OFFICIAL_URL);
+    const data = await res.json();
+    officialData = Array.isArray(data) ? data : [];
+    const cnt = officialData.length;
+    document.getElementById('cnt-official').textContent = cnt;
+    document.getElementById('stat-official').textContent = cnt;
+    renderOfficial();
+  } catch {
+    document.getElementById('grid-official').innerHTML = '<div class="empty-row">Could not load official plugins.</div>';
+  }
+}
+
+async function loadDiscovered() {
+  try {
+    const res  = await fetch(DISCOVERED_URL);
+    const data = await res.json();
+    discoveredData = Array.isArray(data.plugins) ? data.plugins : [];
+    toolsData      = Array.isArray(data.tools)   ? data.tools   : [];
+    generatedAt    = data.generatedAt || null;
+
+    const dCnt = discoveredData.length;
+    const tCnt = toolsData.length;
+    document.getElementById('cnt-discovered').textContent = dCnt.toLocaleString();
+    document.getElementById('cnt-tools').textContent      = tCnt.toLocaleString();
+    document.getElementById('stat-discovered').textContent = dCnt.toLocaleString();
+    document.getElementById('stat-tools').textContent      = tCnt.toLocaleString();
+
+    if (generatedAt) {
+      const d = new Date(generatedAt).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+      document.getElementById('freshness-text').textContent = `Data updated ${d} · crawled twice weekly`;
+    } else {
+      document.getElementById('freshness-text').textContent = 'Crawled twice weekly via GitHub Actions';
+    }
+
+    if (activeTab === 'discovered') renderDiscovered();
+    if (activeTab === 'tools')      renderTools();
+  } catch {
+    document.getElementById('grid-discovered').innerHTML = '<div class="empty-row">Could not load discovered plugins.</div>';
+    document.getElementById('grid-tools').innerHTML      = '<div class="empty-row">Could not load MCP tools.</div>';
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────
+loadOfficial();
+loadDiscovered();
+</script>
+</body>
+</html>

@@ -1,0 +1,437 @@
+[
+  {
+    "name": "agent-sdk-dev",
+    "description": "Claude Agent SDK Development Plugin",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "clangd-lsp",
+    "description": "C/C++ language server (clangd) for Claude Code, providing code intelligence, diagnostics, and formatting.",
+    "author": "Anthropic",
+    "type": "lsp",
+    "keywords": [
+      "lsp",
+      "language-server"
+    ],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "claude-code-setup",
+    "description": "Analyze codebases and recommend tailored Claude Code automations such as hooks, skills, MCP servers, and subagents.",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "1.0.0",
+    "homepage": ""
+  },
+  {
+    "name": "claude-md-management",
+    "description": "Tools to maintain and improve CLAUDE.md files - audit quality, capture session learnings, and keep project memory current.",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "1.0.0",
+    "homepage": ""
+  },
+  {
+    "name": "code-review",
+    "description": "Automated code review for pull requests using multiple specialized agents with confidence-based scoring",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "code-simplifier",
+    "description": "Agent that simplifies and refines code for clarity, consistency, and maintainability while preserving functionality",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "1.0.0",
+    "homepage": ""
+  },
+  {
+    "name": "commit-commands",
+    "description": "Streamline your git workflow with simple commands for committing, pushing, and creating pull requests",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "csharp-lsp",
+    "description": "C# language server for Claude Code, providing code intelligence and diagnostics.",
+    "author": "Anthropic",
+    "type": "lsp",
+    "keywords": [
+      "lsp",
+      "language-server"
+    ],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "example-plugin",
+    "description": "A comprehensive example plugin demonstrating all Claude Code extension options including commands, agents, skills, hooks, and MCP servers",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "explanatory-output-style",
+    "description": "Adds educational insights about implementation choices and codebase patterns (mimics the deprecated Explanatory output style)",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "feature-dev",
+    "description": "Comprehensive feature development workflow with specialized agents for codebase exploration, architecture design, and quality review",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "frontend-design",
+    "description": "Frontend design skill for UI/UX implementation",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "gopls-lsp",
+    "description": "Go language server for Claude Code, providing code intelligence, refactoring, and analysis.",
+    "author": "Anthropic",
+    "type": "lsp",
+    "keywords": [
+      "lsp",
+      "language-server"
+    ],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "hookify",
+    "description": "Easily create hooks to prevent unwanted behaviors by analyzing conversation patterns",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "jdtls-lsp",
+    "description": "Java language server (Eclipse JDT.LS) for Claude Code, providing code intelligence and refactoring.",
+    "author": "Anthropic",
+    "type": "lsp",
+    "keywords": [
+      "lsp",
+      "language-server"
+    ],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "kotlin-lsp",
+    "description": "Kotlin language server for Claude Code, providing code intelligence, refactoring, and analysis.",
+    "author": "Anthropic",
+    "type": "lsp",
+    "keywords": [
+      "lsp",
+      "language-server"
+    ],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "learning-output-style",
+    "description": "Interactive learning mode that requests meaningful code contributions at decision points (mimics the unshipped Learning output style)",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "lua-lsp",
+    "description": "Lua language server for Claude Code, providing code intelligence and diagnostics.",
+    "author": "Anthropic",
+    "type": "lsp",
+    "keywords": [
+      "lsp",
+      "language-server"
+    ],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "php-lsp",
+    "description": "PHP language server (Intelephense) for Claude Code, providing code intelligence and diagnostics.",
+    "author": "Anthropic",
+    "type": "lsp",
+    "keywords": [
+      "lsp",
+      "language-server"
+    ],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "playground",
+    "description": "Creates interactive HTML playgrounds — self-contained single-file explorers with visual controls, live preview, and prompt output with copy button",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "plugin-dev",
+    "description": "Plugin development toolkit with skills for creating agents, commands, hooks, MCP integrations, and comprehensive plugin structure guidance",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "pr-review-toolkit",
+    "description": "Comprehensive PR review agents specializing in comments, tests, error handling, type design, code quality, and code simplification",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "pyright-lsp",
+    "description": "Python language server (Pyright) for Claude Code, providing static type checking and code intelligence.",
+    "author": "Anthropic",
+    "type": "lsp",
+    "keywords": [
+      "lsp",
+      "language-server"
+    ],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "ralph-loop",
+    "description": "Continuous self-referential AI loops for interactive iterative development, implementing the Ralph Wiggum technique. Run Claude in a while-true loop with the same prompt until task completion.",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "ruby-lsp",
+    "description": "Ruby language server for Claude Code, providing code intelligence and analysis.",
+    "author": "Anthropic",
+    "type": "lsp",
+    "keywords": [
+      "lsp",
+      "language-server"
+    ],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "rust-analyzer-lsp",
+    "description": "Rust language server for Claude Code, providing code intelligence and analysis.",
+    "author": "Anthropic",
+    "type": "lsp",
+    "keywords": [
+      "lsp",
+      "language-server"
+    ],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "security-guidance",
+    "description": "Security reminder hook that warns about potential security issues when editing files, including command injection, XSS, and unsafe code patterns",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "skill-creator",
+    "description": "Create new skills, improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, update or optimize an existing skill, run evals to test a skill, or benchmark skill performance with variance analysis.",
+    "author": "Anthropic",
+    "type": "anthropic",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "swift-lsp",
+    "description": "Swift language server (SourceKit-LSP) for Claude Code, providing code intelligence for Swift projects.",
+    "author": "Anthropic",
+    "type": "lsp",
+    "keywords": [
+      "lsp",
+      "language-server"
+    ],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "typescript-lsp",
+    "description": "TypeScript/JavaScript language server for Claude Code, providing code intelligence features like go-to-definition, find references, and error checking.",
+    "author": "Anthropic",
+    "type": "lsp",
+    "keywords": [
+      "lsp",
+      "language-server"
+    ],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "asana",
+    "description": "Asana project management integration. Create and manage tasks, search projects, update assignments, track progress, and integrate your development workflow with Asana's work management platform.",
+    "author": "Asana",
+    "type": "external",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "context7",
+    "description": "Upstash Context7 MCP server for up-to-date documentation lookup. Pull version-specific documentation and code examples directly from source repositories into your LLM context.",
+    "author": "Upstash",
+    "type": "external",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "firebase",
+    "description": "Google Firebase MCP integration. Manage Firestore databases, authentication, cloud functions, hosting, and storage. Build and manage your Firebase backend directly from your development workflow.",
+    "author": "Google",
+    "type": "external",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "github",
+    "description": "Official GitHub MCP server for repository management. Create issues, manage pull requests, review code, search repositories, and interact with GitHub's full API directly from Claude Code.",
+    "author": "GitHub",
+    "type": "external",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "gitlab",
+    "description": "GitLab DevOps platform integration. Manage repositories, merge requests, CI/CD pipelines, issues, and wikis. Full access to GitLab's comprehensive DevOps lifecycle tools.",
+    "author": "GitLab",
+    "type": "external",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "greptile",
+    "description": "AI code review agent for GitHub and GitLab. View and resolve Greptile's PR review comments directly from Claude Code.",
+    "author": "Greptile",
+    "type": "external",
+    "keywords": [
+      "code-review",
+      "pull-requests",
+      "github",
+      "gitlab",
+      "ai"
+    ],
+    "version": "",
+    "homepage": "https://greptile.com/docs"
+  },
+  {
+    "name": "laravel-boost",
+    "description": "Laravel development toolkit MCP server. Provides intelligent assistance for Laravel applications including Artisan commands, Eloquent queries, routing, migrations, and framework-specific code generation.",
+    "author": "Laravel",
+    "type": "external",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "linear",
+    "description": "Linear issue tracking integration. Create issues, manage projects, update statuses, search across workspaces, and streamline your software development workflow with Linear's modern issue tracker.",
+    "author": "Linear",
+    "type": "external",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "playwright",
+    "description": "Browser automation and end-to-end testing MCP server by Microsoft. Enables Claude to interact with web pages, take screenshots, fill forms, click elements, and perform automated browser testing workflows.",
+    "author": "Microsoft",
+    "type": "external",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "serena",
+    "description": "Semantic code analysis MCP server providing intelligent code understanding, refactoring suggestions, and codebase navigation through language server protocol integration.",
+    "author": "Oraios",
+    "type": "external",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "slack",
+    "description": "Slack workspace integration. Search messages, access channels, read threads, and stay connected with your team's communications while coding. Find relevant discussions and context quickly.",
+    "author": "Slack",
+    "type": "external",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  },
+  {
+    "name": "stripe",
+    "description": "Stripe development plugin for Claude",
+    "author": "Stripe",
+    "type": "external",
+    "keywords": [
+      "stripe",
+      "payments",
+      "webhooks",
+      "api",
+      "security"
+    ],
+    "version": "0.1.0",
+    "homepage": "https://docs.stripe.com"
+  },
+  {
+    "name": "supabase",
+    "description": "Supabase MCP integration for database operations, authentication, storage, and real-time subscriptions. Manage your Supabase projects, run SQL queries, and interact with your backend directly.",
+    "author": "Supabase",
+    "type": "external",
+    "keywords": [],
+    "version": "",
+    "homepage": ""
+  }
+]

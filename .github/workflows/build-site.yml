@@ -1,0 +1,41 @@
+name: Build GH Pages site
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'claude-plugins-official/**'
+      - 'scripts/build-official-json.js'
+      - 'docs/index.html'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Clone claude-plugins-official
+        run: |
+          git clone --depth 1 https://github.com/anthropics/claude-plugins-official.git claude-plugins-official
+
+      - name: Bake official.json
+        run: node scripts/build-official-json.js > docs/official.json
+
+      - name: Commit updated official.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/official.json
+          git diff --staged --quiet && echo "No changes" || git commit -m "chore: rebuild docs/official.json [skip ci]"
+          git push
