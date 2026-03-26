@@ -1875,7 +1875,7 @@ function render() {
       if (p.installed) {
         return `<div class="install-cmd installed-cmd" onclick="copyCmd('${esc(installCmd)}')" title="Click to copy"><span class="prompt">✓</span>${esc(installCmd)}</div>`;
       }
-      const mktRepo = isEstablished || isNewPlugin ? p.repo : null;
+      const mktRepo = isEstablished || isFounding || isNewPlugin ? p.repo : null;
       const mktAdded = mktRepo && liveMarketplaces?.some(m => {
         const slug = mktRepo.replace('/', '-');
         return m.name === slug || m.name === mktRepo.split('/')[1] || slug.endsWith('-' + m.name) || slug.startsWith(m.name + '-');
