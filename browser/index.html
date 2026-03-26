@@ -501,7 +501,7 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
   color: var(--muted);
   line-height: 1.5;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
   flex: 1;
@@ -1000,6 +1000,7 @@ html { transition: background 0.25s, color 0.25s; }
   white-space: nowrap;
 }
 .tier-label.established { color: var(--c-gold); }
+.tier-label.founding    { color: #fb923c; }
 .tier-label.new-tier    { color: #38bdf8; }
 .tier-line {
   flex: 1;
@@ -1553,47 +1554,38 @@ function render() {
   // Build lists for special tabs
   const unmonitored = getUnmonitoredPlugins();
 
+  // Client-side tier from star count: 0=established(≥25), 1=founding(5–24), 2=new(<5)
+  const starTierFn = p => (p.stars || 0) >= 25 ? 0 : (p.stars || 0) >= 5 ? 1 : 2;
+
   if (activeFilter === 'discovered') {
-    let established = discoveredPlugins?.established ?? [];
-    let newPlugins  = discoveredPlugins?.new ?? [];
-    // Apply 30-day recency filter — use repo creation date (not marketplace commit date)
+    let all = [
+      ...(discoveredPlugins?.established ?? []),
+      ...(discoveredPlugins?.new ?? []),
+    ];
     if (showNew30d) {
       const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-      const recent = p => {
+      all = all.filter(p => {
         const d = p.repoCreatedAt || p.lastMarketplaceCommit;
         return d && new Date(d).getTime() >= cutoff;
-      };
-      established = established.filter(recent);
-      newPlugins  = newPlugins.filter(recent);
+      });
     }
-    // Apply keyword sub-filters
     if (activeKeywords.size) {
-      const kf = kw => (kw.keywords ?? []).some(k => activeKeywords.has(k));
-      established = established.filter(kf);
-      newPlugins  = newPlugins.filter(kf);
+      all = all.filter(p => (p.keywords ?? []).some(k => activeKeywords.has(k)));
     }
-    // Sort within each tier so tier divider and stripe assignments stay correct
+    let innerCmp;
     if (sort === 'popular') {
-      const byStars = (a, b) => (b.stars || 0) - (a.stars || 0);
-      established = [...established].sort(byStars);
-      newPlugins  = [...newPlugins].sort(byStars);
+      innerCmp = (a, b) => (b.stars || 0) - (a.stars || 0);
     } else if (sort === 'recently-updated') {
-      const byDate = (a, b) => {
+      innerCmp = (a, b) => {
         const da = a.lastMarketplaceCommit ? new Date(a.lastMarketplaceCommit).getTime() : 0;
         const db = b.lastMarketplaceCommit ? new Date(b.lastMarketplaceCommit).getTime() : 0;
         return db - da;
       };
-      established = [...established].sort(byDate);
-      newPlugins  = [...newPlugins].sort(byDate);
     } else {
-      const byName = (a, b) => a.name.localeCompare(b.name);
-      established = [...established].sort(byName);
-      newPlugins  = [...newPlugins].sort(byName);
+      innerCmp = (a, b) => a.name.localeCompare(b.name);
     }
-    list = [
-      ...established,
-      ...newPlugins,
-    ].map(p => ({
+    all = [...all].sort((a, b) => (starTierFn(a) - starTierFn(b)) || innerCmp(a, b));
+    list = all.map(p => ({
       ...p,
       url:       p.repoUrl,
       installs:  0,
@@ -1601,37 +1593,31 @@ function render() {
       hasUpdate: false,
     }));
   } else if (activeFilter === 'tools') {
-    let established = toolsData?.established ?? [];
-    let newTools    = toolsData?.new ?? [];
+    let all = [
+      ...(toolsData?.established ?? []),
+      ...(toolsData?.new ?? []),
+    ];
     if (showNew30d) {
       const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-      const recent = t => t.repoCreatedAt && new Date(t.repoCreatedAt).getTime() >= cutoff;
-      established = established.filter(recent);
-      newTools    = newTools.filter(recent);
+      all = all.filter(t => t.repoCreatedAt && new Date(t.repoCreatedAt).getTime() >= cutoff);
     }
     if (activeKeywords.size) {
-      const tf = t => (t.topics ?? []).some(k => activeKeywords.has(k));
-      established = established.filter(tf);
-      newTools    = newTools.filter(tf);
+      all = all.filter(t => (t.topics ?? []).some(k => activeKeywords.has(k)));
     }
+    let innerCmp;
     if (sort === 'popular') {
-      const byStars = (a, b) => (b.stars || 0) - (a.stars || 0);
-      established = [...established].sort(byStars);
-      newTools    = [...newTools].sort(byStars);
+      innerCmp = (a, b) => (b.stars || 0) - (a.stars || 0);
     } else if (sort === 'recently-updated') {
-      const byDate = (a, b) => {
+      innerCmp = (a, b) => {
         const da = a.repoUpdatedAt ? new Date(a.repoUpdatedAt).getTime() : 0;
         const db = b.repoUpdatedAt ? new Date(b.repoUpdatedAt).getTime() : 0;
         return db - da;
       };
-      established = [...established].sort(byDate);
-      newTools    = [...newTools].sort(byDate);
     } else {
-      const byName = (a, b) => a.name.localeCompare(b.name);
-      established = [...established].sort(byName);
-      newTools    = [...newTools].sort(byName);
+      innerCmp = (a, b) => a.name.localeCompare(b.name);
     }
-    list = [...established, ...newTools].map(t => ({
+    all = [...all].sort((a, b) => (starTierFn(a) - starTierFn(b)) || innerCmp(a, b));
+    list = all.map(t => ({
       ...t,
       url:       t.repoUrl,
       installs:  0,
@@ -1716,10 +1702,9 @@ function render() {
   const isDiscovered = activeFilter === 'discovered';
   const isToolsTab   = activeFilter === 'tools';
   const isAddedTab   = activeFilter === 'added';
-  // After keyword/topic filtering, count how many in list are established tier
-  const establishedCount = (isDiscovered || isToolsTab)
-    ? list.filter(p => p.tier === 'established').length
-    : 0;
+  // After keyword/topic filtering, count per tier (computed from star count)
+  const establishedCount = (isDiscovered || isToolsTab) ? list.filter(p => (p.stars || 0) >= 25).length : 0;
+  const foundingCount    = (isDiscovered || isToolsTab) ? list.filter(p => { const s = p.stars || 0; return s >= 5 && s < 25; }).length : 0;
   // Pre-compute per-marketplace plugin counts for Added tab dividers
   const mktCounts = {};
   if (isAddedTab) {
@@ -1746,9 +1731,11 @@ function render() {
     const isAdded           = p.type === 'added';
     const isUnmonitored     = p.type === 'unmonitored';
     const isEstablished     = isDiscovered && i < establishedCount;
-    const isNewPlugin       = isDiscovered && i >= establishedCount;
+    const isFounding        = isDiscovered && i >= establishedCount && i < establishedCount + foundingCount;
+    const isNewPlugin       = isDiscovered && i >= establishedCount + foundingCount;
     const isToolEstablished = isToolsTab && i < establishedCount;
-    const isToolNew         = isToolsTab && i >= establishedCount;
+    const isToolFounding    = isToolsTab && i >= establishedCount && i < establishedCount + foundingCount;
+    const isToolNew         = isToolsTab && i >= establishedCount + foundingCount;
 
     const stripeClass = isEstablished     ? 'stripe-discovered'
                       : isNewPlugin       ? 'stripe-new-plugin'
@@ -1800,14 +1787,14 @@ function render() {
 
     // Section dividers
     let divider = '';
-    if (isDiscovered && i === 0 && establishedCount > 0) {
-      divider = `<div class="tier-divider"><span class="tier-label established">★ Established · 5+ stars</span><div class="tier-line"></div><span class="tier-count">${establishedCount}</span></div>`;
-    } else if (isDiscovered && i === establishedCount && establishedCount > 0 && list.length > establishedCount) {
-      divider = `<div class="tier-divider"><span class="tier-label new-tier">New &amp; Unverified</span><div class="tier-line"></div><span class="tier-count">${list.length - establishedCount}</span></div>`;
-    } else if (isToolsTab && i === 0 && establishedCount > 0) {
+    const isDiscOrTool = isDiscovered || isToolsTab;
+    const newTierCount = list.length - establishedCount - foundingCount;
+    if (isDiscOrTool && i === 0 && establishedCount > 0) {
       divider = `<div class="tier-divider"><span class="tier-label established">★ Established · 25+ stars</span><div class="tier-line"></div><span class="tier-count">${establishedCount}</span></div>`;
-    } else if (isToolsTab && i === establishedCount && establishedCount > 0 && list.length > establishedCount) {
-      divider = `<div class="tier-divider"><span class="tier-label new-tier">New &amp; Unverified</span><div class="tier-line"></div><span class="tier-count">${list.length - establishedCount}</span></div>`;
+    } else if (isDiscOrTool && i === establishedCount && foundingCount > 0) {
+      divider = `<div class="tier-divider"><span class="tier-label founding">Founding · 5–24 stars</span><div class="tier-line"></div><span class="tier-count">${foundingCount}</span></div>`;
+    } else if (isDiscOrTool && i === establishedCount + foundingCount && newTierCount > 0 && (establishedCount > 0 || foundingCount > 0)) {
+      divider = `<div class="tier-divider"><span class="tier-label new-tier">New &amp; Unverified · &lt;5 stars</span><div class="tier-line"></div><span class="tier-count">${newTierCount}</span></div>`;
     } else if (isAddedTab && (i === 0 || list[i - 1].marketplace !== p.marketplace)) {
       const mkt     = p.marketplace || 'unknown';
       const repo    = p.marketplaceRepo;
@@ -1819,13 +1806,13 @@ function render() {
       divider = `<div class="section-divider-added">📦 ${esc(divLabel)}${repoLink ? ' · ' + repoLink : ''}<span class="mkt-count">${cnt} plugin${cnt !== 1 ? 's' : ''}</span></div>`;
     }
 
-    const starInfo = (isEstablished || isNewPlugin || isToolEstablished || isToolNew) && p.stars
+    const starInfo = (isEstablished || isFounding || isNewPlugin || isToolEstablished || isToolFounding || isToolNew) && p.stars
       ? ` <span style="opacity:0.45;font-size:0.75em">· ${p.stars}★</span>`
       : '';
 
     // Icon class (2-char initials from name)
-    const iconClass = isEstablished || isNewPlugin ? 'icon-discovered'
-      : isToolEstablished || isToolNew ? 'icon-tools'
+    const iconClass = isEstablished || isFounding || isNewPlugin ? 'icon-discovered'
+      : isToolEstablished || isToolFounding || isToolNew ? 'icon-tools'
       : isAdded ? 'icon-added'
       : isUnmonitored ? 'icon-unmonitored'
       : p.type === 'anthropic' ? 'icon-anthropic'
@@ -1836,10 +1823,14 @@ function render() {
     // Badge html (replaces old typeBadge)
     const badgeHtml = isEstablished
       ? '<span class="discovered-badge">plugin</span>'
+      : isFounding
+      ? '<span class="discovered-badge" style="opacity:0.75">plugin</span>'
       : isNewPlugin
       ? '<span class="new-plugin-badge">unverified</span>'
       : isToolEstablished
       ? '<span class="discovered-badge" style="background:var(--c-scout);color:#001a0d">tool</span>'
+      : isToolFounding
+      ? '<span class="discovered-badge" style="background:var(--c-scout);color:#001a0d;opacity:0.75">tool</span>'
       : isToolNew
       ? '<span class="new-plugin-badge" style="border-color:rgba(52,211,153,0.4);color:rgba(52,211,153,0.7)">unverified</span>'
       : isAdded
@@ -1849,21 +1840,21 @@ function render() {
       : '';
 
     // Star bar (discovered/tools only)
-    const isDiscOrTool = isEstablished || isNewPlugin || isToolEstablished || isToolNew;
-    const starBarPct = isDiscOrTool ? Math.min((p.stars || 0) / 500 * 100, 100) : 0;
-    const starBarFillClass = (isToolEstablished || isToolNew) ? 'fill-tools' : 'fill-discovered';
-    const starBarHtml = isDiscOrTool
+    const isDiscOrToolCard = isEstablished || isFounding || isNewPlugin || isToolEstablished || isToolFounding || isToolNew;
+    const starBarPct = isDiscOrToolCard ? Math.min((p.stars || 0) / 500 * 100, 100) : 0;
+    const starBarFillClass = (isToolEstablished || isToolFounding || isToolNew) ? 'fill-tools' : 'fill-discovered';
+    const starBarHtml = isDiscOrToolCard
       ? `<div class="star-bar-wrap"><div class="star-bar-track"><div class="star-bar-fill ${starBarFillClass}" style="width:${starBarPct}%"></div></div></div>`
       : '';
 
     // Footer right: stars or install count
-    const footerRight = isDiscOrTool
+    const footerRight = isDiscOrToolCard
       ? (p.stars ? `<span class="card-stars"><span class="star">★</span>${p.stars >= 1000 ? (p.stars/1000).toFixed(1)+'k' : p.stars}</span>` : '')
       : (count    ? `<span class="card-stars">${count} installs</span>` : '');
 
     // Tags
     const tagsHtml = (() => {
-      if (isToolEstablished || isToolNew) return (p.topics||[]).slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+      if (isToolEstablished || isToolFounding || isToolNew) return (p.topics||[]).slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
       if (p.type === 'anthropic') return `<span class="tag">anthropic</span>`;
       if (p.type === 'external')  return `<span class="tag">mcp</span>`;
       if (p.type === 'lsp')       return `<span class="tag">lsp</span>`;
@@ -1873,7 +1864,7 @@ function render() {
 
     // Install cmd html
     const installHtml = (() => {
-      const isTool = isToolEstablished || isToolNew;
+      const isTool = isToolEstablished || isToolFounding || isToolNew;
       if (isTool) {
         if (p.installHint) {
           return `<div class="install-cmd install-hint" onclick="copyCmd('${esc(p.installHint)}')" title="Click to copy install command"><span class="prompt">$</span>${esc(p.installHint)}</div>`;
@@ -1912,9 +1903,9 @@ function render() {
   </div>
   <div class="card-desc">${isUnmonitored && p.installedAt
     ? `<span style="opacity:0.5;font-size:0.75em;font-family:var(--f-mono)">installed ${esc(new Date(p.installedAt).toLocaleDateString())}${p.version?' · v'+esc(p.version):''}</span>`
-    : esc(p.desc)}</div>
+    : esc((p.desc||'').length > 400 ? p.desc.slice(0, 400) + '…' : (p.desc||''))}</div>
   ${starBarHtml}
-  ${(isToolEstablished||isToolNew)&&p.topics?.length ? `<div class="topic-pills">${p.topics.slice(0,5).map(t=>`<span class="topic-pill">${esc(t)}</span>`).join('')}</div>` : ''}
+  ${(isToolEstablished||isToolFounding||isToolNew)&&p.topics?.length ? `<div class="topic-pills">${p.topics.slice(0,5).map(t=>`<span class="topic-pill">${esc(t)}</span>`).join('')}</div>` : ''}
   <div class="card-footer">
     <div class="card-tags">${tagsHtml}</div>
     ${footerRight}
@@ -1956,7 +1947,7 @@ function render() {
       <div class="card-author">@${esc(p.author)}</div>
     </div>
   </div>
-  <div class="card-desc">${esc(p.desc)}</div>
+  <div class="card-desc">${esc((p.desc||'').length > 400 ? p.desc.slice(0, 400) + '…' : (p.desc||''))}</div>
   <div class="card-footer">
     <div class="card-tags"></div>
     ${ignoredPopTxt ? `<span class="card-stars">${ignoredPopTxt}</span>` : ''}
