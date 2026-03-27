@@ -1,92 +1,94 @@
-# plugin-browser
+# Claude Scout
 
-A local web UI for browsing Claude Code plugin marketplaces — official, added, and discovered.
+A local web UI for browsing Claude Code plugin marketplaces — official, community-added, and discovered.
+
+**[Browse plugins without installing →](https://devycelabs.github.io/claude-scout/)**
+
+---
 
 ## Features
 
-- Browse all plugins from `claude-plugins-official`
-- Filter by type: Anthropic · MCP · LSP · Installed · Updates · Added · Unmonitored · Discovered
-- **Added tab** — shows plugins from all marketplaces you've explicitly added, grouped by marketplace with tag filters
-- **Discovered tab** — auto-crawled plugins from GitHub Code Search, split into Established (5+ stars) and New/Unverified tiers, with keyword sub-filters
-- **Updates tab** — installed plugins with newer commits available
+- Browse all plugins from `claude-plugins-official` (Anthropic, MCP, LSP tabs)
+- **Installed tab** — shows your currently installed plugins
+- **Added tab** — plugins from any marketplace you've explicitly added, grouped by marketplace with tag filters
+- **Discovered tab** — auto-crawled plugins from GitHub Code Search, updated twice weekly; three tiers based on star count:
+  - **Established** (≥25 ★) — proven community adoption
+  - **Founding** (5–24 ★) — growing projects
+  - **New & Unverified** (<5 ★) — early-stage plugins
+- **Tools tab** — MCP tool-focused plugins
 - **Unmonitored tab** — installed plugins not tracked by any known registry
 - Sort by popularity (install counts) or name
-- Relative popularity bars with real install numbers
-- One-click copy of `/plugin install` commands; two-step copy (marketplace add + install) for plugins whose marketplace isn't yet added
-- Official plugins synced from local `~/.claude/plugins/` cache — no network needed for core data
-- Fonts downloaded once on install and served locally
+- Proportional popularity bars with real install numbers
+- One-click copy of `/plugin install` commands; two-step copy for plugins whose marketplace isn't yet added
+- Live reads from `~/.claude/plugins/` — no restart needed when marketplaces change; click **⟳ Sync** to refresh
+- Fonts downloaded once on install and served locally — works offline
 
-## Requirements
+## Web Version
 
-**Node.js 18 or later** must be on your system PATH. No npm install or build step required — the server uses only Node.js built-in modules.
+Browse official and discovered plugins without installing anything:
+
+**[devycelabs.github.io/claude-scout](https://devycelabs.github.io/claude-scout/)**
+
+Includes Official, Discovered, and Tools tabs. Install commands visible for easy copy-paste into Claude Code.
 
 ## Install via Claude Code
 
 ```
-/plugin marketplace add devycelabs/claude-plugin-browser
-/plugin install plugin-browser
+/plugin marketplace add devycelabs/claude-scout
+/plugin install claude-scout
 ```
 
-Then use:
+Then open the local UI:
 ```
 /plugin-browser
 ```
 
-## Standalone usage (no plugin installation)
+## Requirements
+
+**Node.js 18 or later** on your system PATH. No npm install or build step — the server uses only Node.js built-in modules.
+
+## Standalone usage
 
 ```bash
 node server/index.js
 # open http://localhost:3747
 ```
 
-Or open `browser/index.html` directly — works offline with embedded fallback data.
-
 ## Configuration
-
-The server respects the following environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PLUGIN_BROWSER_PORT` | `3747` | HTTP port the browser UI listens on |
-| `PLUGIN_BROWSER_DEV` | _(unset)_ | Set to `1` to enable dev mode (serves `browser/index.html` from disk on every request instead of caching) |
-| `CLAUDE_PLUGIN_DATA` | `~/.claude/plugins/data/plugin-browser` | Override the data/cache directory used by the server |
-
-Example — run on a different port:
-```bash
-PLUGIN_BROWSER_PORT=4000 node server/index.js
-```
+| `PLUGIN_BROWSER_PORT` | `3747` | HTTP port for the browser UI |
+| `PLUGIN_BROWSER_DEV` | _(unset)_ | Set to `1` for dev mode (serves `browser/index.html` from disk on every request) |
+| `CLAUDE_PLUGIN_DATA` | `~/.claude/plugins/data/claude-scout` | Override the data/cache directory |
 
 ## How it works
 
-The plugin ships a combined server (`server/index.js`) that:
-- Runs as an **MCP server** over stdio (Claude Code manages its lifecycle)
-- Simultaneously serves the **browser UI** over HTTP on `localhost:3747`
-
-On each request, the server reads live data from `~/.claude/plugins/` — no restart needed when marketplaces are added or plugins are installed. Click **⟳ Sync** in the browser to refresh.
-
-When the MCP server isn't present, the skill prompts you to start the node server manually, or you can open the HTML file directly as a fallback.
+`server/index.js` runs as both an **MCP server** over stdio (Claude Code manages lifecycle) and an **HTTP server** on `localhost:3747`. On each request it reads live data from `~/.claude/plugins/` — no restart needed.
 
 ## Skills
 
 | Skill | Trigger | Purpose |
 |-------|---------|---------|
-| `plugin-browser` | "open plugin browser", `/plugin-browser` | Opens the browser UI |
+| `plugin-browser` | "open plugin browser", `/plugin-browser` | Opens the local browser UI |
 | `plugin-browser-setup` | "set up plugin browser", `/plugin-browser:setup` | Guided post-install configuration |
 
 ## Hooks
 
-**SessionStart** — runs `server/setup-check.js` on every session start. Checks if the server is reachable; prints one-time setup instructions if not. Downloads fonts on first run. Kills any stale server process so updated code always takes effect.
+**SessionStart** — runs `server/setup-check.js` on every session start. Checks if the server is reachable, prints one-time setup instructions if not, downloads fonts on first run, and kills any stale server process so updated code takes effect immediately.
 
 ## Structure
 
 ```
-plugin-browser/
+claude-scout/
 ├── .claude-plugin/
 │   ├── plugin.json           ← plugin manifest
 │   ├── marketplace.json      ← marketplace listing
 │   └── mcp.json              ← MCP server config
 ├── browser/
-│   └── index.html            ← the web UI
+│   └── index.html            ← the web UI (single file)
+├── docs/
+│   └── index.html            ← GH Pages hosted version
 ├── hooks/
 │   └── hooks.json            ← SessionStart hook
 ├── server/
@@ -95,9 +97,9 @@ plugin-browser/
 │   └── setup-check.js        ← SessionStart hook script
 ├── skills/
 │   ├── plugin-browser/
-│   │   └── SKILL.md          ← /plugin-browser skill
+│   │   └── SKILL.md
 │   └── plugin-browser-setup/
-│       └── SKILL.md          ← /plugin-browser:setup skill
+│       └── SKILL.md
 ├── LICENSE
 ├── PRIVACY.md
 └── README.md
