@@ -1,6 +1,5 @@
 ---
-name: checkpoint
-description: Save current session state to memory and data-mcp before /clear or ending a workflow — use this whenever you want to preserve work without doing a full compact
+description: Save current session state to memory and data-mcp before /clear or ending a workflow
 ---
 
 # Checkpoint
