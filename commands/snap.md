@@ -1,12 +1,12 @@
 ---
-description: Save current session state to memory and data-mcp before /clear or ending a workflow
+description: Take a memory snapshot before /clear or ending a workflow
 ---
 
-# Checkpoint
+# Snap
 
-Save the current session state before clearing or ending. Run this before `/clear` to avoid losing work.
+Take a memory snapshot before clearing or ending. Run this before `/clear` to avoid losing work.
 
-**Announce at start:** "Saving checkpoint before clear."
+**Announce at start:** "Taking snapshot before clear."
 
 ## Process
 
@@ -40,4 +40,4 @@ checkpoint_save(
 
 ### Step 4 — Confirm
 
-Report back: "Checkpoint saved. Safe to /clear."
+Report back: "Snapshot saved. Safe to /clear."
